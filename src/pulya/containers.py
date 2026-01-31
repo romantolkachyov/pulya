@@ -15,11 +15,11 @@ T = TypeVar("T")
 
 
 class _BodyWrapper:
-    def __init__(self, content: bytes):
+    def __init__(self, content: bytes) -> None:
         self.content = content
 
     def deserialize(self, body_arg_schema: type[T]) -> T:
-        content = self.content or "null".encode()
+        content = self.content or b"null"
         return msgspec.json.decode(content, type=body_arg_schema)
 
 

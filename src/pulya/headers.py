@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
+from collections.abc import Iterator
 from enum import Enum
-from typing import Iterator
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +14,11 @@ class ManyStrategy(Enum):
 
 
 class Headers:
-    """HTTP headers.
+    """
+    HTTP headers.
 
-    An interface for accessing request headers, abstracted from the implementation details of a particular protocol.
+    An interface for accessing request headers, abstracted from the implementation
+    details of a particular protocol.
     """
 
     __slots__ = ["_headers"]
@@ -37,18 +39,20 @@ class Headers:
         default: str | None = None,
         strategy: ManyStrategy = ManyStrategy.warn,
     ) -> str | None:
-        """Get header value by name.
+        """
+        Get header value by name.
 
         Produce warning log if there are more than one header with the same name.
         This behavior can be changed with `strategy` argument.
-        It is better to use dedicated methods like :py:meth:`get_first`, :py:meth:`get_last` or
-        :py:meth:`get_list` to avoid warnings if multiple headers expected.
+        It is better to use dedicated methods like :py:meth:`get_first`,
+        :py:meth:`get_last` or :py:meth:`get_list` to avoid warnings
+        if multiple headers expected.
         """
         key = key.lower()
         values = self.get_list(key)
         if values is None or len(values) == 0:
             return default
-        elif len(values) == 1:
+        if len(values) == 1:
             return values[0]
 
         match strategy:
@@ -60,9 +64,8 @@ class Headers:
                 logger.warning("Multiple %s headers received", key)
                 return values[0]
             case ManyStrategy.forbid:
-                raise ValueError(
-                    f"Multiple headers `{key}` are forbidden by fail strategy."
-                )
+                msg = f"Multiple headers `{key}` are forbidden by fail strategy."
+                raise ValueError(msg)
 
     def get_first(self, key: str, default: str | None = None) -> str | None:
         return self.get(key, default, ManyStrategy.first)

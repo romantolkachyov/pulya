@@ -1,9 +1,9 @@
+from collections.abc import AsyncGenerator
 from http import HTTPStatus
-from typing import AsyncGenerator
 
 
 class BaseResponse:
-    __slots__ = ["status", "headers"]
+    __slots__ = ["headers", "status"]
 
     def __init__(
         self, status: HTTPStatus, headers: list[tuple[str, str]] | None = None
@@ -13,7 +13,7 @@ class BaseResponse:
 
 
 class Response(BaseResponse):
-    __slots__ = ["status", "content", "headers"]
+    __slots__ = ["content", "headers", "status"]
 
     default_content_type = "text/plain"
 

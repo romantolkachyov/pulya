@@ -1,6 +1,7 @@
 from collections import defaultdict
+from collections.abc import AsyncIterator, Iterable, Iterator
 from http import HTTPMethod
-from typing import AsyncIterator, Iterable, Iterator, Literal, Protocol
+from typing import Literal, Protocol
 
 from pulya.headers import Headers
 from pulya.request import Request
@@ -13,7 +14,6 @@ class _Headers(Protocol):
     def __iter__(self) -> Iterator[str]: ...
     def get_all(self, key: str) -> list[str]:
         """Get all values from headers with specified name."""
-        pass
 
     def items(self) -> Iterable[tuple[str, str]]: ...
 
@@ -26,9 +26,11 @@ class Scope:
     rsgi_version: str
     #: a string containing the HTTP version (one of "1", "1.1" or "2")
     http_version: str
-    #: a string in the format {address}:{port}, where host is the listening address for this server, and port is the integer listening port
+    #: a string in the format {address}:{port}, where host is the listening address
+    #:  for this server, and port is the integer listening port
     server: str
-    #: a string in the format {address}:{port}, where host is the remote host's address and port is the remote port
+    #: a string in the format {address}:{port}, where host is the remote host's address
+    #:  and port is the remote port
     client: str
     #: URL scheme portion (one of "http" or "https")
     scheme: str
@@ -38,9 +40,13 @@ class Scope:
     path: str
     #: URL portion after the ?
     query_string: str
-    #: a mapping-like object, where key is the header name, and value is the header value; header names are always lower-case; a get_all method returns a list of all the header values for the given key
+    #: a mapping-like object, where key is the header name,
+    #: and value is the header value;
+    #: header names are always lower-case; a get_all method returns a list of all the
+    #: header values for the given key
     headers: _Headers
-    #: an optional string containing the relevant pseudo-header (empty on HTTP versions prior to 2)
+    #: an optional string containing the relevant pseudo-header
+    #: (empty on HTTP versions prior to 2)
     authority: str | None
 
 
@@ -105,12 +111,13 @@ class HTTPProtocol(Protocol):
 
 
 class RSGIRequest(Request):
-    """RSGI request adapter.
+    """
+    RSGI request adapter.
 
     Implements Request interface over RSGI scope and protocol.
     """
 
-    __slots__ = ("_scope", "_protocol")
+    __slots__ = ("_protocol", "_scope")
 
     def __init__(self, scope: Scope, protocol: HTTPProtocol) -> None:
         self._scope = scope

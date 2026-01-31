@@ -1,6 +1,7 @@
 from collections import defaultdict
+from collections.abc import Callable, Mapping
 from http import HTTPMethod
-from typing import Any, Callable, Mapping, Protocol, TypeVar, get_args, get_type_hints
+from typing import Any, Protocol, TypeVar, get_args, get_type_hints
 
 import msgspec
 from matchit import Router as MatchitRouter
@@ -16,18 +17,18 @@ class CreateRouteSignature(Protocol):
 
 class Route:
     __slots__ = [
-        "method",
-        "url_pattern",
-        "handler",
         "body_arg_name",
         "body_arg_schema",
+        "handler",
         "handler_type_hint",
+        "method",
         "path_params_schema",
+        "url_pattern",
     ]
 
     def __init__(
         self, method: HTTPMethod, url_pattern: str, handler: Callable[..., Any]
-    ):
+    ) -> None:
         self.method = method
         self.handler = handler
         self.url_pattern = url_pattern
@@ -48,7 +49,7 @@ class Route:
 
 
 class _MethodFactory:
-    def __init__(self, method: HTTPMethod):
+    def __init__(self, method: HTTPMethod) -> None:
         self.method = method
 
     def __get__(self, instance: "Router", owner: type) -> CreateRouteSignature:

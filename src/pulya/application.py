@@ -2,7 +2,7 @@ import threading
 from asyncio import AbstractEventLoop
 from contextvars import ContextVar
 from http import HTTPStatus
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 import msgspec
 from asgiref.typing import (
@@ -26,16 +26,15 @@ from pulya.responses import Response
 from pulya.routing import Router
 from pulya.rsgi import HTTPProtocol, RSGIRequest, Scope
 
-DIContainer = TypeVar("DIContainer", bound=DeclarativeContainer)
-
 active_request: ContextVar[Request] = ContextVar("active_request")
 
 
-class Application(Router, Generic[DIContainer]):
-    def __init__(self, container_class: type[DIContainer]) -> None:
+class Application[T: DeclarativeContainer](Router):
+    container: T | None = None
+
+    def __init__(self, container_class: type[T]) -> None:
         super().__init__()
         self.container_class = container_class
-        self.container: DeclarativeContainer | None = None
         self._di_lock = threading.Lock()
 
     async def handle_http_request(self, request: Request) -> Any:
@@ -60,7 +59,8 @@ class Application(Router, Generic[DIContainer]):
             active_request.reset(token)
 
     async def on_startup(self) -> None:
-        # dependency-inject is unstable in free-threading mode so creating container sequentially
+        # dependency-inject is unstable in free-threading mode
+        # so creating container sequentially
         with self._di_lock:
             request_container = RequestContainer(ctx=active_request)
             self.container = self.container_class(request=request_container)
@@ -79,7 +79,7 @@ class Application(Router, Generic[DIContainer]):
                 await fut
 
 
-class ASGIApplication(Application[DIContainer]):
+class ASGIApplication[DIContainer: DeclarativeContainer](Application[DIContainer]):
     """Pulya ASGI application interface implementation."""
 
     async def __call__(
@@ -94,7 +94,7 @@ class ASGIApplication(Application[DIContainer]):
                         LifespanStartupCompleteEvent(type="lifespan.startup.complete")
                     )
                     return
-                elif message["type"] == "lifespan.shutdown":
+                if message["type"] == "lifespan.shutdown":
                     await self.on_shutdown()
                     await send(
                         LifespanShutdownCompleteEvent(type="lifespan.shutdown.complete")
@@ -121,13 +121,11 @@ class ASGIApplication(Application[DIContainer]):
                         more_body=False,
                     )
                 )
-            elif isinstance(response, msgspec.Struct) or isinstance(
-                response, (dict, list, str, int)
-            ):
+            elif isinstance(response, (msgspec.Struct, dict, list, str, int)):
                 await send(
                     HTTPResponseStartEvent(
                         type="http.response.start",
-                        status=HTTPStatus.OK,  # FIXME: get default status
+                        status=HTTPStatus.OK,  # TODO @roman: get default status
                         headers=[
                             (b"content-type", b"text/plain"),
                         ],
@@ -142,16 +140,20 @@ class ASGIApplication(Application[DIContainer]):
                     )
                 )
             else:
-                raise RuntimeError(f"Unsupported response type {type(response)}")
+                msg = f"Unsupported response type {type(response)}"
+                raise RuntimeError(msg)
         else:
-            raise RuntimeError(f"Unsupported scope type {type(scope['type'])}")
+            msg = f"Unsupported scope type {type(scope['type'])}"
+            raise RuntimeError(msg)
 
 
-class RSGIApplication(Application[DIContainer]):
+class RSGIApplication[T: DeclarativeContainer](Application[T]):
     """Pulya RSGI application interface implementation."""
 
     async def __rsgi__(self, scope: Scope, protocol: HTTPProtocol) -> None:
-        assert scope.proto == "http", "WS is not supported yet"
+        if scope.proto != "http":
+            msg = f"Unsupported protocol {scope.proto}"
+            raise RuntimeError(msg)
 
         response = await self.handle_http_request(RSGIRequest(scope, protocol))
 
@@ -159,27 +161,24 @@ class RSGIApplication(Application[DIContainer]):
             protocol.response_bytes(
                 status=response.status, headers=response.headers, body=response.content
             )
-        elif isinstance(response, msgspec.Struct) or isinstance(
-            response, (dict, list, str, int)
-        ):
+        elif isinstance(response, (msgspec.Struct, dict, list, str, int)):
             protocol.response_bytes(
                 status=HTTPStatus.OK, headers=[], body=msgspec.json.encode(response)
             )
         else:
-            raise RuntimeError(f"Unsupported response type {type(response)}")
+            msg = f"Unsupported response type {type(response)}"
+            raise TypeError(msg)
 
     def __rsgi_init__(self, loop: AbstractEventLoop) -> None:
-        # dependency-inject is unstable in free-threading mode so creating container sequentially
         loop.run_until_complete(self.on_startup())
 
     def __rsgi_del__(self, loop: AbstractEventLoop) -> None:
         loop.run_until_complete(self.on_shutdown())
 
 
-class Pulya(RSGIApplication[DIContainer], ASGIApplication[DIContainer]):
-    """Pylya application.
+class Pulya[T: DeclarativeContainer](RSGIApplication[T], ASGIApplication[T]):
+    """
+    Pylya application.
 
     Base class for web-application implementing ASGI and RSGI interfaces.
     """
-
-    pass

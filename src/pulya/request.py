@@ -16,4 +16,3 @@ class Request(Protocol):
 
     async def get_content(self) -> bytes:
         """Read whole request body."""
-        pass

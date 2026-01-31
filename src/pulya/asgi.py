@@ -1,6 +1,6 @@
 from collections import defaultdict
+from collections.abc import Iterable
 from http import HTTPMethod
-from typing import Iterable
 
 from asgiref.typing import ASGIReceiveCallable, HTTPScope
 
@@ -9,12 +9,13 @@ from pulya.request import Request
 
 
 class ASGIRequest(Request):
-    """ASGI request adapter.
+    """
+    ASGI request adapter.
 
     Implements Request interface for ASGI scope that can be handled by the application.
     """
 
-    __slots__ = ("_scope", "_receive")
+    __slots__ = ("_receive", "_scope")
 
     def __init__(self, scope: HTTPScope, receive: ASGIReceiveCallable) -> None:
         self._scope = scope
@@ -45,12 +46,14 @@ class ASGIRequest(Request):
                 body += message.get("body", b"")
                 more_body = message.get("more_body", False)
             else:
-                raise RuntimeError(f"Unsupported ASGI message type {message['type']}")
+                msg = f"Unsupported ASGI message type {message['type']}"
+                raise RuntimeError(msg)
         return body
 
 
 class ASGIHeaders(Headers):
-    """ASGI headers adapter.
+    """
+    ASGI headers adapter.
 
     Adopts headers structure defined in ASGI scope to internal one.
     """
