@@ -32,7 +32,14 @@ repos:
         args: [ --fix ]
       # Run the formatter.
       - id: ruff-format
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    # uv version.
+    rev: 0.9.28
+    hooks:
+      - id: uv-lock
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.19.1
     hooks:
-    -   id: mypy
+      - id: mypy
+        args: [ --strict ]
+        additional_dependencies: [ httpx, msgspec, asgiref, dependency-injector,python-matchit ]

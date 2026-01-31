@@ -28,13 +28,14 @@ from pulya.rsgi import HTTPProtocol, RSGIRequest, Scope
 
 DIContainer = TypeVar("DIContainer", bound=DeclarativeContainer)
 
+active_request: ContextVar[Request] = ContextVar("active_request")
+
 
 class Application(Router, Generic[DIContainer]):
     def __init__(self, container_class: type[DIContainer]) -> None:
         super().__init__()
         self.container_class = container_class
         self.container: DeclarativeContainer | None = None
-        self.active_request: ContextVar[Request] = ContextVar("active_request")
         self._di_lock = threading.Lock()
 
     async def handle_http_request(self, request: Request) -> Any:
@@ -52,14 +53,16 @@ class Application(Router, Generic[DIContainer]):
         )
 
         handler_params = msgspec.structs.asdict(validated_path_params)
-
-        with self.active_request.set(request):
+        token = active_request.set(request)
+        try:
             return await route.handler(**handler_params)
+        finally:
+            active_request.reset(token)
 
     async def on_startup(self) -> None:
         # dependency-inject is unstable in free-threading mode so creating container sequentially
         with self._di_lock:
-            request_container = RequestContainer(ctx=self.active_request)
+            request_container = RequestContainer(ctx=active_request)
             self.container = self.container_class(request=request_container)
             self.container.check_dependencies()
             if fut := self.container.init_resources():
@@ -77,6 +80,8 @@ class Application(Router, Generic[DIContainer]):
 
 
 class ASGIApplication(Application[DIContainer]):
+    """Pulya ASGI application interface implementation."""
+
     async def __call__(
         self, scope: ASGIScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
@@ -143,6 +148,8 @@ class ASGIApplication(Application[DIContainer]):
 
 
 class RSGIApplication(Application[DIContainer]):
+    """Pulya RSGI application interface implementation."""
+
     async def __rsgi__(self, scope: Scope, protocol: HTTPProtocol) -> None:
         assert scope.proto == "http", "WS is not supported yet"
 
