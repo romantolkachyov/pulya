@@ -43,8 +43,9 @@ jobs:
         run: uv sync --locked --all-extras --dev
       - name: Run ruff
         run: uv run ruff format --check --diff
+      - name: Run pre-commit
+        run: pre-commit run --all-files --fail-fast
       - name: Run mypy
         run: uv run mypy
       - name: Run tests
-        # For example, using `pytest`
-        run: uv run pytest tests
+        run: uv run pytest tests --cov
