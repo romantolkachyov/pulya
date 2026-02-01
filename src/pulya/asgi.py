@@ -119,7 +119,43 @@ class ASGIApplication(AbstractApplication, ABC):
                         more_body=False,
                     )
                 )
-            elif isinstance(response, (msgspec.Struct, dict, list, str, int)):
+            elif isinstance(response, str):
+                await send(
+                    HTTPResponseStartEvent(
+                        type="http.response.start",
+                        status=HTTPStatus.OK,  # TODO @roman: get default status
+                        headers=[
+                            (b"content-type", b"text/plain"),
+                        ],
+                        trailers=False,
+                    )
+                )
+                await send(
+                    HTTPResponseBodyEvent(
+                        type="http.response.body",
+                        body=response.encode(),
+                        more_body=False,
+                    )
+                )
+            elif isinstance(response, bytes):
+                await send(
+                    HTTPResponseStartEvent(
+                        type="http.response.start",
+                        status=HTTPStatus.OK,  # TODO @roman: get default status
+                        headers=[
+                            (b"content-type", b"text/plain"),
+                        ],
+                        trailers=False,
+                    )
+                )
+                await send(
+                    HTTPResponseBodyEvent(
+                        type="http.response.body",
+                        body=response,
+                        more_body=False,
+                    )
+                )
+            elif isinstance(response, (msgspec.Struct, dict, list, str, int | bytes)):
                 await send(
                     HTTPResponseStartEvent(
                         type="http.response.start",

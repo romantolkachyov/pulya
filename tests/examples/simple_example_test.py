@@ -66,3 +66,15 @@ async def test_echo(client: TestClient) -> None:
     resp = await client.post("/echo", json={"items": []})
     assert resp.status_code == HTTPStatus.OK
     assert resp.json() == {"items": []}
+
+
+async def test_bytes_response(client: TestClient) -> None:
+    resp = await client.get("/bytes/")
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.content == b"Hello in plain text!"
+
+
+async def test_str_response(client: TestClient) -> None:
+    resp = await client.get("/str/")
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.content == b"Hello in plain text!"

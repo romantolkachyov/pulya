@@ -193,6 +193,12 @@ class RSGIApplication(AbstractApplication, ABC):
             protocol.response_bytes(
                 status=response.status, headers=response.headers, body=response.content
             )
+        elif isinstance(response, bytes):
+            protocol.response_bytes(status=HTTPStatus.OK, headers=[], body=response)
+        elif isinstance(response, str):
+            protocol.response_bytes(
+                status=HTTPStatus.OK, headers=[], body=response.encode()
+            )
         elif isinstance(response, (msgspec.Struct, dict, list, str, int)):
             protocol.response_bytes(
                 status=HTTPStatus.OK, headers=[], body=msgspec.json.encode(response)

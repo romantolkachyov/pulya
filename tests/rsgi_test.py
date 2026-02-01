@@ -2,7 +2,7 @@ import asyncio
 from collections import UserDict
 from collections.abc import AsyncIterator
 
-import msgspec.json
+import msgspec
 
 from examples.simple_example import app
 from pulya.rsgi import Scope, Transport
@@ -11,9 +11,12 @@ from pulya.rsgi import Scope, Transport
 class StubHTTPProtocol:
     """RSGI protocol object implementation for testing."""
 
+    def __init__(self, content: bytes | None = None) -> None:
+        self.content: bytes | None = content
+
     async def __call__(self) -> bytes:
         """__call__ to receive the entire body in bytes format."""
-        return msgspec.json.encode({"items": []})
+        return self.content or b""
 
     async def __aiter__(self) -> AsyncIterator[bytes]:
         """__aiter__ to receive the body in bytes chunks."""
@@ -87,7 +90,7 @@ def test_rsgi_application() -> None:
                 headers=StubHeaders({"X-Sample": "example Value"}),
                 authority=None,
             ),
-            StubHTTPProtocol(),
+            StubHTTPProtocol(msgspec.json.encode({"items": []})),
         )
     )
     event_loop.run_until_complete(
@@ -105,7 +108,7 @@ def test_rsgi_application() -> None:
                 headers=StubHeaders({"X-Sample": "example Value"}),
                 authority=None,
             ),
-            StubHTTPProtocol(),
+            StubHTTPProtocol(msgspec.json.encode({"items": []})),
         )
     )
     event_loop.run_until_complete(
@@ -121,6 +124,42 @@ def test_rsgi_application() -> None:
                 path="/plain_response/",
                 query_string="",
                 headers=StubHeaders({"X-Sample": "example Value"}),
+                authority=None,
+            ),
+            StubHTTPProtocol(msgspec.json.encode({"items": []})),
+        )
+    )
+    event_loop.run_until_complete(
+        app.__rsgi__(
+            Scope(
+                proto="http",
+                rsgi_version="1.0",
+                http_version="2.0",
+                server="server",
+                client="client",
+                scheme="http",
+                method="GET",
+                path="/bytes/",
+                query_string="",
+                headers=StubHeaders(),
+                authority=None,
+            ),
+            StubHTTPProtocol(),
+        )
+    )
+    event_loop.run_until_complete(
+        app.__rsgi__(
+            Scope(
+                proto="http",
+                rsgi_version="1.0",
+                http_version="2.0",
+                server="server",
+                client="client",
+                scheme="http",
+                method="GET",
+                path="/str/",
+                query_string="",
+                headers=StubHeaders(),
                 authority=None,
             ),
             StubHTTPProtocol(),

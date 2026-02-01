@@ -73,6 +73,16 @@ async def plain_response() -> Response:
     return Response(content=b"Hello in plain text!")
 
 
+@app.get("/bytes/")
+async def bytes_response() -> bytes:
+    return b"Hello in plain text!"
+
+
+@app.get("/str/")
+async def str_response() -> str:
+    return "Hello in plain text!"
+
+
 @app.post("/echo")
 @inject
 async def echo(
