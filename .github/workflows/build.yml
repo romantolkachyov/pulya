@@ -45,7 +45,7 @@ jobs:
       - name: Run ruff
         run: uv run ruff format --check --diff
       - name: Run pre-commit
-        run: pre-commit run --all-files --fail-fast
+        run: uv run pre-commit run --all-files --fail-fast
       - name: Run mypy
         run: uv run mypy
       - name: Run tests
