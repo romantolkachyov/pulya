@@ -58,7 +58,7 @@ class ASGIRequest(Request):
             if message["type"] == "http.request":
                 body += message.get("body", b"")
                 more_body = message.get("more_body", False)
-            else:
+            else:  # pragma: no cover
                 msg = f"Unsupported ASGI message type {message['type']}"
                 raise RuntimeError(msg)
         return body
@@ -91,7 +91,6 @@ class ASGIApplication(AbstractApplication, ABC):
                     await send(
                         LifespanStartupCompleteEvent(type="lifespan.startup.complete")
                     )
-                    return
                 if message["type"] == "lifespan.shutdown":
                     await self.on_shutdown()
                     await send(

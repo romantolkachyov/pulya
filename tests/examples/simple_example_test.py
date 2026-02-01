@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator, Awaitable
 from http import HTTPStatus
 from typing import Any
@@ -5,6 +6,10 @@ from typing import Any
 import pytest
 from asgiref.typing import (
     ASGI3Application,
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendCallable,
+    ASGISendEvent,
     ASGIVersions,
     LifespanScope,
     LifespanShutdownEvent,
@@ -27,34 +32,59 @@ async def _fake_send(event: Any) -> None:
     pass
 
 
+def _create_lifespan_receive(
+    input_queue: asyncio.Queue[ASGIReceiveEvent],
+) -> ASGIReceiveCallable:
+    def _receive() -> Awaitable[ASGIReceiveEvent]:
+        return input_queue.get()
+
+    return _receive
+
+
+def _create_lifespan_send(
+    output_queue: asyncio.Queue[ASGISendEvent],
+) -> ASGISendCallable:
+    def _send(event: ASGISendEvent) -> Awaitable[None]:
+        return output_queue.put(event)
+
+    return _send
+
+
 @pytest.fixture
 def app() -> Pulya[Any]:
     return simple_app
 
 
+async def _lifespan_task(
+    app: ASGI3Application,
+    input_queue: asyncio.Queue[ASGIReceiveEvent],
+    output_queue: asyncio.Queue[ASGISendEvent],
+) -> None:
+    lifespan_scope = LifespanScope(
+        type="lifespan",
+        asgi=ASGIVersions(spec_version="3.0", version="3.0"),
+    )
+    await app(
+        lifespan_scope,
+        _create_lifespan_receive(input_queue),
+        _create_lifespan_send(output_queue),
+    )
+
+
 @pytest.fixture
 async def client(app: ASGI3Application) -> AsyncGenerator[TestClient, Any]:
     async with TestClient(app=app) as client:
-        lifespan_scope = LifespanScope(
-            type="lifespan",
-            asgi=ASGIVersions(spec_version="3.0", version="3.0"),
+        input_queue: asyncio.Queue[ASGIReceiveEvent] = asyncio.Queue()
+        output_queue: asyncio.Queue[ASGISendEvent] = asyncio.Queue()
+        lifespan_task = asyncio.get_running_loop().create_task(
+            _lifespan_task(app, input_queue, output_queue)
         )
-        res = app(
-            lifespan_scope,
-            _startup_event_receive,
-            _fake_send,
-        )
-        if isinstance(res, Awaitable):
-            await res
-
+        await input_queue.put(LifespanStartupEvent(type="lifespan.startup"))
+        await output_queue.get()
         yield client
-        res = app(
-            lifespan_scope,
-            _shutdown_event_receive,
-            _fake_send,
-        )
-        if isinstance(res, Awaitable):
-            await res
+        await input_queue.put(LifespanShutdownEvent(type="lifespan.shutdown"))
+        await output_queue.get()
+        await lifespan_task
 
 
 async def test_unknown_route(client: TestClient) -> None:
