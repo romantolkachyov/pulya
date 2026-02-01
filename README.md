@@ -1,8 +1,8 @@
-**pulya** is a tiny python web framework focused on performance and new python features.
-
+<p align="center"><b>pulya</b> is a tiny python web framework focused on performance and new python features.</p>
 <div style="text-align: center;">
     <img src="/logos/horizontal-2.png">
 </div>
+<p></p>
 
 Features:
 
