@@ -1,6 +1,8 @@
 **pulya** is a tiny python web framework focused on performance and new python features.
 
-Minimal supported python version 3.12.
+<div style="text-align: center;">
+    <img src="/logos/horizontal-2.png">
+</div>
 
 Features:
 
@@ -9,6 +11,8 @@ Features:
 - **RSGI** and first-class **granian** support
 - **free-threading** / **no-gil** python support
 - zero-cost routing with **python-matchit**
+
+Minimal supported python version 3.12.
 
 # Quick start
 
