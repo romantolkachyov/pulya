@@ -1,4 +1,3 @@
-from collections.abc import AsyncGenerator
 from http import HTTPStatus
 
 
@@ -26,17 +25,3 @@ class Response(BaseResponse):
         super().__init__(status=status, headers=headers)
         self.headers = headers or []
         self.content = content
-
-
-class StreamingResponse(BaseResponse):
-    def __init__(
-        self,
-        stream: AsyncGenerator[bytes],
-        status: HTTPStatus = HTTPStatus.OK,
-        headers: list[tuple[str, str]] | None = None,
-    ) -> None:
-        super().__init__(status=status, headers=headers)
-        self.stream = stream
-
-    def get_content_stream(self) -> AsyncGenerator[bytes, None]:
-        return self.stream

@@ -31,6 +31,12 @@ async def _lifespan_task(
 
 
 class TestClient(httpx.AsyncClient):
+    """Test client for ASGI application based on HTTPX AsyncClient..
+
+    Can be used in test with plain ASGI application.
+    Handles lifespan startup and shutdown.
+    """
+
     __test__ = False
     _lifespan_task: Task[None] | None = None
 
@@ -60,6 +66,6 @@ class TestClient(httpx.AsyncClient):
     ) -> None:
         await self._receive_queue.put(LifespanShutdownEvent(type="lifespan.shutdown"))
         await self._send_queue.get()
-        if self._lifespan_task is not None:
+        if self._lifespan_task is not None:  # pragma: no branch
             await self._lifespan_task
         await super().__aexit__(exc_type, exc_value, traceback)

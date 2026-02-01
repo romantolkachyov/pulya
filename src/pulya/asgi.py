@@ -71,10 +71,11 @@ class ASGIHeaders(Headers):
     Adopts headers structure defined in ASGI scope to internal one.
     """
 
-    def __init__(self, headers: Iterable[tuple[bytes, bytes]]) -> None:
+    def __init__(self, headers: Iterable[tuple[bytes, bytes]] | None = None) -> None:
         self._headers = defaultdict(list)
-        for k, v in headers:
-            self.add(k.decode(), v.decode())
+        if headers:
+            for k, v in headers:
+                self.add(k.decode(), v.decode())
 
 
 class ASGIApplication(AbstractApplication, ABC):

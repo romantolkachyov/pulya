@@ -67,7 +67,7 @@ class Headers:
             case ManyStrategy.warn:
                 logger.warning("Multiple %s headers received", key)
                 return values[0]
-            case ManyStrategy.forbid:
+            case _:
                 msg = (
                     f"There are multiple headers `{key}` which is forbidden "
                     f"by used strategy ManyStrategy.forbid. "

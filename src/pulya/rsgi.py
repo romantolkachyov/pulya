@@ -27,7 +27,7 @@ class _Headers(Protocol):
 class Scope:
     """RSGI scope interface."""
 
-    proto: Literal["http", "ws"] = "http"
+    proto: Literal["http", "ws"]
     #: a string containing the version of the RSGI spec
     rsgi_version: str
     #: a string containing the HTTP version (one of "1", "1.1" or "2")
@@ -39,7 +39,7 @@ class Scope:
     #:  and port is the remote port
     client: str
     #: URL scheme portion (one of "http" or "https")
-    scheme: str
+    scheme: Literal["http", "https"]
     #: the HTTP method name, uppercased
     method: str
     #: HTTP request target excluding any query string
@@ -54,6 +54,32 @@ class Scope:
     #: an optional string containing the relevant pseudo-header
     #: (empty on HTTP versions prior to 2)
     authority: str | None
+
+    def __init__(  # noqa: PLR0913
+        self,
+        proto: Literal["http", "ws"],
+        rsgi_version: str,
+        http_version: str,
+        server: str,
+        client: str,
+        scheme: Literal["http", "https"],
+        method: str,
+        path: str,
+        query_string: str,
+        headers: _Headers,
+        authority: str | None = None,
+    ) -> None:
+        self.proto = proto
+        self.rsgi_version = rsgi_version
+        self.http_version = http_version
+        self.server = server
+        self.client = client
+        self.scheme = scheme
+        self.method = method
+        self.path = path
+        self.query_string = query_string
+        self.headers = headers
+        self.authority = authority
 
 
 class Transport(Protocol):
@@ -146,17 +172,18 @@ class RSGIRequest(Request):
 
 
 class RSGIHeaders(Headers):
-    def __init__(self, headers: _Headers) -> None:
+    def __init__(self, headers: _Headers | None = None) -> None:
         self._headers = defaultdict(list)
-        for k in headers:
-            self.set_list(k, headers.get_all(k))
+        if headers is not None:
+            for k in headers:
+                self.set_list(k, headers.get_all(k))
 
 
 class RSGIApplication(AbstractApplication, ABC):
     """Pulya RSGI application interface implementation."""
 
     async def __rsgi__(self, scope: Scope, protocol: HTTPProtocol) -> None:
-        if scope.proto != "http":
+        if scope.proto != "http":  # pragma: no cover
             msg = f"Unsupported protocol {scope.proto}"
             raise RuntimeError(msg)
 
@@ -170,7 +197,7 @@ class RSGIApplication(AbstractApplication, ABC):
             protocol.response_bytes(
                 status=HTTPStatus.OK, headers=[], body=msgspec.json.encode(response)
             )
-        else:
+        else:  # pragma: no cover
             msg = f"Unsupported response type {type(response)}"
             raise TypeError(msg)
 

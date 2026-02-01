@@ -53,6 +53,15 @@ async def test_two_containers_wired(client: TestClient) -> None:
     ]
 
 
+async def test_headers(client: TestClient) -> None:
+    header_value = "Some Value"
+    resp = await client.get("/headers/", headers={"X-examplE": header_value})
+    assert resp.status_code == HTTPStatus.OK
+
+    data = resp.json()
+    assert data["x-example"] == header_value
+
+
 async def test_echo(client: TestClient) -> None:
     resp = await client.post("/echo", json={"items": []})
     assert resp.status_code == HTTPStatus.OK

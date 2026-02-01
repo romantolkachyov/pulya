@@ -60,7 +60,7 @@ class Pulya[T: DeclarativeContainer](Router, RSGIApplication, ASGIApplication):
             self.container = self.container_class(request=request_container)
             self.container.check_dependencies()
             if fut := self.container.init_resources():
-                await fut
+                await fut  # pragma: no cover
             request_container.wiring_config = self.container.wiring_config
             # DI package has incomplete typings. Will be fixed in the upcoming release.
             self.container.wire(keep_cache=True)  # type: ignore[call-arg]
@@ -70,4 +70,4 @@ class Pulya[T: DeclarativeContainer](Router, RSGIApplication, ASGIApplication):
     async def on_shutdown(self) -> None:
         with self._di_lock:
             if self.container and (fut := self.container.shutdown_resources()):
-                await fut
+                await fut  # pragma: no cover
