@@ -26,7 +26,8 @@ dependencies = [
   "dependency-injector",
   "msgspec",
   "python-matchit",
-  "asgiref"
+  "asgiref",
+  "granian>=2.6.1"
 ]
 
 [tool.coverage.report]
