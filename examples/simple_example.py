@@ -6,7 +6,7 @@ import msgspec.json
 from dependency_injector import containers, providers
 from dependency_injector.wiring import Provide, inject
 
-from pulya.application import Pulya
+from pulya import Pulya
 from pulya.containers import RequestContainer
 from pulya.headers import Headers
 from pulya.request import Request
@@ -27,6 +27,7 @@ class EchoBody(msgspec.Struct):
 
 
 def get_user_from_request(request: Request) -> str:
+    # Just for example of how dependency may look like, no special meaning.
     return f"<User {request.path}>"
 
 
@@ -44,13 +45,13 @@ app = Pulya(Container)
 
 
 @app.get("/")
-async def index() -> dict[str, str]:
-    return {"Hello": "World"}
+async def index() -> dict[str, Any]:
+    return {"success": True}
 
 
-@app.get("/test/{name}")
+@app.get("/wiring/{name}")
 @inject
-async def test(
+async def two_containers_wiring(
     user: Annotated[str, Provide[Container.user]],
     name: str,
     headers: Annotated[Headers, Provide[RequestContainer.headers]],

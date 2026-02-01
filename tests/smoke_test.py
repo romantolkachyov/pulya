@@ -1,3 +1,8 @@
+"""Smoke tests to check built package.
+
+This module is executed before publishing built package to PyPi.
+"""
+
 from dependency_injector import containers
 
 from pulya import Pulya

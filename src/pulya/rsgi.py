@@ -1,10 +1,16 @@
+from abc import ABC
+from asyncio import AbstractEventLoop
 from collections import defaultdict
 from collections.abc import AsyncIterator, Iterable, Iterator
-from http import HTTPMethod
+from http import HTTPMethod, HTTPStatus
 from typing import Literal, Protocol
 
+import msgspec
+
+from pulya.application import AbstractApplication
 from pulya.headers import Headers
 from pulya.request import Request
+from pulya.responses import Response
 
 
 class _Headers(Protocol):
@@ -144,3 +150,32 @@ class RSGIHeaders(Headers):
         self._headers = defaultdict(list)
         for k in headers:
             self.set_list(k, headers.get_all(k))
+
+
+class RSGIApplication(AbstractApplication, ABC):
+    """Pulya RSGI application interface implementation."""
+
+    async def __rsgi__(self, scope: Scope, protocol: HTTPProtocol) -> None:
+        if scope.proto != "http":
+            msg = f"Unsupported protocol {scope.proto}"
+            raise RuntimeError(msg)
+
+        response = await self.handle_http_request(RSGIRequest(scope, protocol))
+
+        if isinstance(response, Response):
+            protocol.response_bytes(
+                status=response.status, headers=response.headers, body=response.content
+            )
+        elif isinstance(response, (msgspec.Struct, dict, list, str, int)):
+            protocol.response_bytes(
+                status=HTTPStatus.OK, headers=[], body=msgspec.json.encode(response)
+            )
+        else:
+            msg = f"Unsupported response type {type(response)}"
+            raise TypeError(msg)
+
+    def __rsgi_init__(self, loop: AbstractEventLoop) -> None:
+        loop.run_until_complete(self.on_startup())
+
+    def __rsgi_del__(self, loop: AbstractEventLoop) -> None:
+        loop.run_until_complete(self.on_shutdown())

@@ -1,11 +1,24 @@
+from abc import ABC
 from collections import defaultdict
 from collections.abc import Iterable
-from http import HTTPMethod
+from http import HTTPMethod, HTTPStatus
 
-from asgiref.typing import ASGIReceiveCallable, HTTPScope
+import msgspec
+from asgiref.typing import (
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
+    HTTPScope,
+    LifespanShutdownCompleteEvent,
+    LifespanStartupCompleteEvent,
+)
+from asgiref.typing import Scope as ASGIScope
 
+from pulya.application import AbstractApplication
 from pulya.headers import Headers
 from pulya.request import Request
+from pulya.responses import Response
 
 
 class ASGIRequest(Request):
@@ -62,3 +75,71 @@ class ASGIHeaders(Headers):
         self._headers = defaultdict(list)
         for k, v in headers:
             self.add(k.decode(), v.decode())
+
+
+class ASGIApplication(AbstractApplication, ABC):
+    """Pulya ASGI application interface implementation."""
+
+    async def __call__(
+        self, scope: ASGIScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
+        if scope["type"] == "lifespan":
+            while True:
+                message = await receive()
+                if message["type"] == "lifespan.startup":
+                    await self.on_startup()
+                    await send(
+                        LifespanStartupCompleteEvent(type="lifespan.startup.complete")
+                    )
+                    return
+                if message["type"] == "lifespan.shutdown":
+                    await self.on_shutdown()
+                    await send(
+                        LifespanShutdownCompleteEvent(type="lifespan.shutdown.complete")
+                    )
+                    return
+        elif scope["type"] == "http":
+            response = await self.handle_http_request(ASGIRequest(scope, receive))
+
+            if isinstance(response, Response):
+                await send(
+                    HTTPResponseStartEvent(
+                        type="http.response.start",
+                        status=response.status,
+                        headers=[
+                            (b"content-type", b"text/plain"),
+                        ],
+                        trailers=False,
+                    )
+                )
+                await send(
+                    HTTPResponseBodyEvent(
+                        type="http.response.body",
+                        body=response.content,
+                        more_body=False,
+                    )
+                )
+            elif isinstance(response, (msgspec.Struct, dict, list, str, int)):
+                await send(
+                    HTTPResponseStartEvent(
+                        type="http.response.start",
+                        status=HTTPStatus.OK,  # TODO @roman: get default status
+                        headers=[
+                            (b"content-type", b"text/plain"),
+                        ],
+                        trailers=False,
+                    )
+                )
+                await send(
+                    HTTPResponseBodyEvent(
+                        type="http.response.body",
+                        body=msgspec.json.encode(response),
+                        more_body=False,
+                    )
+                )
+            else:
+                msg = f"Unsupported response type {type(response)}"
+                raise RuntimeError(msg)
+        else:
+            msg = f"Unsupported scope type {type(scope['type'])}"
+            raise RuntimeError(msg)
