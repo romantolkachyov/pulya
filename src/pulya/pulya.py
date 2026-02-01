@@ -53,7 +53,7 @@ class Pulya[T: DeclarativeContainer](Router, RSGIApplication, ASGIApplication):
             active_request.reset(token)
 
     async def on_startup(self) -> None:
-        # dependency-inject is unstable in free-threading mode
+        # dependency-injector is unstable in free-threading mode
         # so creating container sequentially
         with self._di_lock:
             request_container = RequestContainer(ctx=active_request)

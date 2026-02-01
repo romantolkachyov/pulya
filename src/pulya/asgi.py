@@ -136,9 +136,9 @@ class ASGIApplication(AbstractApplication, ABC):
                         more_body=False,
                     )
                 )
-            else:
+            else:  # pragma: no cover
                 msg = f"Unsupported response type {type(response)}"
                 raise RuntimeError(msg)
-        else:
+        else:  # pragma: no cover
             msg = f"Unsupported scope type {type(scope['type'])}"
             raise RuntimeError(msg)

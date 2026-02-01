@@ -6,6 +6,10 @@ from enum import Enum
 logger = logging.getLogger(__name__)
 
 
+class TooManyHeadersError(Exception):
+    pass
+
+
 class ManyStrategy(Enum):
     first = 1
     last = 2
@@ -25,7 +29,7 @@ class Headers:
 
     _headers: defaultdict[str, list[str]]
 
-    def __getattr__(self, item: str) -> str | None:
+    def __getitem__(self, item: str) -> str | None:
         return self.get(item)
 
     def __iter__(self) -> Iterator[tuple[str, str]]:
@@ -64,8 +68,12 @@ class Headers:
                 logger.warning("Multiple %s headers received", key)
                 return values[0]
             case ManyStrategy.forbid:
-                msg = f"Multiple headers `{key}` are forbidden by fail strategy."
-                raise ValueError(msg)
+                msg = (
+                    f"There are multiple headers `{key}` which is forbidden "
+                    f"by used strategy ManyStrategy.forbid. "
+                    f"Please use get_first, get_last or get_list instead."
+                )
+                raise TooManyHeadersError(msg)
 
     def get_first(self, key: str, default: str | None = None) -> str | None:
         return self.get(key, default, ManyStrategy.first)
