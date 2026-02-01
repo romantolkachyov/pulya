@@ -59,3 +59,37 @@ Check:
 ```shell
 curl http://localhost:8000/
 ```
+
+# Performance
+
+In the actual state with a lack of some features, **pulya** outperforms all frameworks available in
+https://github.com/romantolkachyov/python-framework-benchmarks benchmark.
+
+```
+Benchmark Results using wrk with 12 threads
+        and 400 connections for 10s
+┏━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┓
+┃ Framework ┃ Requests/sec ┃ Transfer/sec ┃
+┡━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━┩
+│ pulya     │ 138690.14    │     21.96MB  │
+│ starlette │ 129946.20    │     18.84MB  │
+│ litestar  │ 111868.04    │     18.35MB  │
+│ sanic     │ 105941.45    │     17.28MB  │
+│ fastapi   │  93575.14    │     13.56MB  │
+│ quart     │  67418.17    │      9.84MB  │
+│ robyn     │  53397.80    │      6.62MB  │
+│ flask     │   2232.87    │    388.25KB  │
+└───────────┴──────────────┴──────────────┘
+```
+
+```
+wrk -t12 -c400 -d10s -s wrk_script.lua http://localhost:8000/echo
+Running 10s test @ http://localhost:8000/echo
+  12 threads and 400 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     5.40ms    8.58ms 128.34ms   89.02%
+    Req/Sec    11.72k     1.55k   55.05k    92.67%
+  1400773 requests in 10.10s, 221.76MB read
+Requests/sec: 138690.14
+Transfer/sec:     21.96MB
+```
