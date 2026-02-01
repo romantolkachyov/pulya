@@ -14,7 +14,7 @@ dev = [
 
 [project]
 name = "pulya"
-version = "0.2.0"
+version = "0.2.1"
 description = "Tiny web framework based on msgspec and dependency-injector"
 readme = "README.md"
 authors = [
