@@ -28,7 +28,7 @@ pre-commit:
 benchmark:
     #!/usr/bin/env bash
     set -euo pipefail
-    DATE=$(date +%Y%m%d)
+    DATE=$(date +%Y%m%d-%H%M)
     REPORT_DIR="performance-reports"
     BASELINE_DIR="${REPORT_DIR}/baselines"
 
@@ -46,13 +46,21 @@ benchmark:
 benchmark-compare:
     #!/usr/bin/env bash
     set -euo pipefail
-    DATE=$(date +%Y%m%d)
     REPORT_DIR="performance-reports"
     BASELINE_DIR="${REPORT_DIR}/baselines"
 
     echo "Running benchmarks and comparing against baseline..."
-    uv run pytest benchmarks/ --benchmark-only --benchmark-compare --benchmark-json="${BASELINE_DIR}/baseline-${DATE}.json"
+    LATEST_BASELINE=$(ls -t "${BASELINE_DIR}"/baseline-*.json | head -n 1)
+    if [ -z "$LATEST_BASELINE" ]; then
+        echo "Error: No baseline file found in ${BASELINE_DIR}"
+        exit 1
+    fi
 
+    uv run pytest benchmarks/ --benchmark-only --benchmark-compare --benchmark-json="${LATEST_BASELINE}"
+
+    echo ""
+    echo "Comparison complete! Results compared against:"
+    echo "  - ${LATEST_BASELINE}"
 # Generate baseline report (one-time setup)
 baseline:
     #!/usr/bin/env bash
