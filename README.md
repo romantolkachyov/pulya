@@ -60,7 +60,83 @@ Check:
 curl http://localhost:8000/
 ```
 
-# Performance
+---
+# Development
+
+## Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/romantolkachyov/pulya.git
+cd pulya
+
+# Install dependencies
+uv pip install -e ".[dev]"
+```
+
+## Using Just (Command Runner)
+
+The project includes a `justfile` for convenient task automation. Install `just` first:
+
+```bash
+# macOS
+brew install just
+
+# Linux
+cargo install just
+
+# Or download from https://github.com/casey/just/releases
+```
+
+### Available Commands
+
+```bash
+# Run all tests with coverage
+just test
+
+# Run linting and type checking
+just lint
+
+# Run benchmarks and save results
+just benchmark
+
+# Compare current performance against baseline
+just benchmark-compare
+
+# Run all checks (tests + lint + coverage)
+just check
+
+# Fix auto-fixable linting issues
+just fix
+
+# Run pre-commit hooks
+just pre-commit
+
+# Build the package
+just build
+
+# Clean build artifacts
+just clean
+
+# List all commands
+just
+```
+
+### Performance Benchmarking
+
+Run benchmarks to measure performance:
+
+```bash
+# Run benchmarks and generate timestamped report
+just benchmark
+
+# Output will be saved to:
+# performance-reports/baselines/baseline-YYYYMMDD.json
+```
+
+View the baseline report at `performance-reports/baselines/BASELINE.md`.
+
+---
 
 In the actual state with a lack of some features, **pulya** outperforms all frameworks available in
 https://github.com/romantolkachyov/python-framework-benchmarks benchmark.

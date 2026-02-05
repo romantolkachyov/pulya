@@ -48,6 +48,70 @@ uv run pytest -vv
 uv run pytest --cov=pulya --cov-fail-under=100
 ```
 
+## Justfile Commands
+
+The project includes a `justfile` for convenient task automation using [just](https://github.com/casey/just).
+
+### Installation
+```bash
+# Install just (command runner)
+cargo install just
+# Or on macOS: brew install just
+```
+
+### Available Commands
+
+```bash
+# List all available commands
+just
+
+# Run all tests with coverage
+just test
+
+# Run linting and formatting checks
+just lint
+
+# Fix all auto-fixable issues
+just fix
+
+# Run pre-commit hooks
+just pre-commit
+
+# Run benchmarks and save results
+just benchmark
+
+# Run benchmarks and compare against baseline
+just benchmark-compare
+
+# Run all checks (tests + lint + coverage)
+just check
+
+# Clean build artifacts
+just clean
+
+# Build the package
+just build
+```
+
+### Benchmarking with Just
+
+The `just benchmark` command automatically:
+
+1. Runs all benchmarks
+2. Generates a timestamped JSON report in `performance-reports/baselines/`
+3. Displays summary of results
+
+Example:
+```bash
+just benchmark
+# Output: performance-reports/baselines/baseline-20260205.json
+```
+
+To compare against the baseline:
+```bash
+just benchmark-compare
+```
+
 ### Linting and Formatting
 ```bash
 # Check all files with ruff
