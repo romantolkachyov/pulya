@@ -32,14 +32,33 @@ benchmark:
     REPORT_DIR="performance-reports"
     BASELINE_DIR="${REPORT_DIR}/baselines"
 
+    mkdir -p "${BASELINE_DIR}"
+
     echo "Running benchmarks..."
-    uv run pytest benchmarks/ -v --benchmark-only --benchmark-autosave --benchmark-storage="${BASELINE_DIR}"
+
+    # Create markdown report header using a shell script
+    cat > "${BASELINE_DIR}/baseline-${DATE}.md" << EOF
+# Performance Baseline Report
+
+**Date:**
+**Git Commit:**
+**Python:**
+
+## Benchmark Results
+
+\("""
+EOF
+
+    # Run benchmarks and append output to markdown
+    uv run pytest benchmarks/ -v --benchmark-only --benchmark-storage="${BASELINE_DIR}" >> "${BASELINE_DIR}/baseline-${DATE}.md" 2>&1 || true
+
+    # Close the code block
+    echo "" >> "${BASELINE_DIR}/baseline-${DATE}.md"
+    echo "\(\"\)" >> "${BASELINE_DIR}/baseline-${DATE}.md"
+
     echo ""
-    echo "Benchmark complete! Results saved to:"
-    echo "  - Markdown: ${BASELINE_DIR}/baseline-${DATE}.md"
-    echo ""
-    echo "To view baseline comparison, see:"
-    echo "  - ${BASELINE_DIR}/BASELINE-2026-02-05.md"
+    echo "Benchmark complete! Report saved to:"
+    echo "  - ${BASELINE_DIR}/baseline-${DATE}.md"
 
 # Run benchmarks and compare against baseline
 benchmark-compare:
@@ -47,19 +66,12 @@ benchmark-compare:
     set -euo pipefail
     REPORT_DIR="performance-reports"
     BASELINE_DIR="${REPORT_DIR}/baselines"
-    uv run pytest benchmarks/ --benchmark-only --benchmark-compare --benchmark-storage="${BASELINE_DIR}"
-    echo "Running benchmarks and comparing against baseline..."
-    LATEST_BASELINE=$(ls -t "${BASELINE_DIR}"/baseline-*.json | head -n 1)
-    if [ -z "$LATEST_BASELINE" ]; then
-        echo "Error: No baseline file found in ${BASELINE_DIR}"
-        exit 1
-    fi
 
-    uv run pytest benchmarks/ --benchmark-only --benchmark-compare --benchmark-json="${LATEST_BASELINE}"
+    echo "Running benchmarks and comparing against baseline..."
+    uv run pytest benchmarks/ --benchmark-only --benchmark-compare --benchmark-storage="${BASELINE_DIR}"
 
     echo ""
-    echo "Comparison complete! Results compared against:"
-    echo "  - ${LATEST_BASELINE}"
+    echo "Comparison complete! Results compared against the latest baseline in ${BASELINE_DIR}"
 # Generate baseline report (one-time setup)
 baseline:
     #!/usr/bin/env bash
