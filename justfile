@@ -33,8 +33,7 @@ benchmark:
     BASELINE_DIR="${REPORT_DIR}/baselines"
 
     echo "Running benchmarks..."
-    uv run pytest benchmarks/ -v --benchmark-only
-
+    uv run pytest benchmarks/ -v --benchmark-only --benchmark-autosave --benchmark-storage="${BASELINE_DIR}"
     echo ""
     echo "Benchmark complete! Results saved to:"
     echo "  - Markdown: ${BASELINE_DIR}/baseline-${DATE}.md"
@@ -48,7 +47,7 @@ benchmark-compare:
     set -euo pipefail
     REPORT_DIR="performance-reports"
     BASELINE_DIR="${REPORT_DIR}/baselines"
-
+    uv run pytest benchmarks/ --benchmark-only --benchmark-compare --benchmark-storage="${BASELINE_DIR}"
     echo "Running benchmarks and comparing against baseline..."
     LATEST_BASELINE=$(ls -t "${BASELINE_DIR}"/baseline-*.json | head -n 1)
     if [ -z "$LATEST_BASELINE" ]; then
