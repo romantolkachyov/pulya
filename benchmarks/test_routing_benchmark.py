@@ -7,6 +7,7 @@ This module benchmarks static and dynamic route matching performance.
 from http import HTTPMethod
 
 import pytest
+from pytest_benchmark.fixture import BenchmarkFixture
 
 from pulya.routing import Router
 
@@ -15,23 +16,23 @@ from pulya.routing import Router
 class TestRoutingBenchmarks:
     """Benchmark suite for routing performance."""
 
-    def test_static_route_benchmark(self, benchmark: pytest.BenchmarkFixture) -> None:
+    def test_static_route_benchmark(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark static route matching performance."""
         router = Router()
 
-        # Add static routes using correct API: method, url_pattern, handler
+        # Add static routes
         router.add_route(HTTPMethod.GET, "/", lambda: "index")
         router.add_route(HTTPMethod.GET, "/users", lambda: "users")
         router.add_route(HTTPMethod.GET, "/api/v1/users", lambda: "api users")
 
-        def match_routes():
+        def match_static() -> None:
             router.match_route(HTTPMethod.GET, "/")
             router.match_route(HTTPMethod.GET, "/users")
             router.match_route(HTTPMethod.GET, "/api/v1/users")
 
-        benchmark(match_routes)
+        benchmark(match_static)
 
-    def test_dynamic_route_benchmark(self, benchmark: pytest.BenchmarkFixture) -> None:
+    def test_dynamic_route_benchmark(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark dynamic route matching performance."""
         router = Router()
 
@@ -45,8 +46,8 @@ class TestRoutingBenchmarks:
             lambda post_id, comment_id: f"post {post_id} comment {comment_id}",
         )
 
-        def match_dynamic_routes():
+        def match_dynamic() -> None:
             router.match_route(HTTPMethod.GET, "/users/123")
             router.match_route(HTTPMethod.GET, "/posts/456/comments/789")
 
-        benchmark(match_dynamic_routes)
+        benchmark(match_dynamic)

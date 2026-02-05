@@ -1,25 +1,21 @@
 """
 Benchmark tests for header processing in the Pulya framework.
 
-This module benchmarks performance of HTTP header parsing and manipulation.
+This module benchmarks performance of HTTP header creation.
 """
 
 import pytest
-
-# Benchmark header operations without creating Headers objects
-# since Headers has a complex initialization
+from pytest_benchmark.fixture import BenchmarkFixture
 
 
 @pytest.mark.benchmark
 class TestHeadersBenchmarks:
     """Benchmark suite for header processing."""
 
-    def test_header_list_creation_benchmark(
-        self, benchmark: pytest.BenchmarkFixture
-    ) -> None:
+    def test_header_list_creation_benchmark(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark creating raw header list."""
 
-        def create_headers():
+        def create_headers() -> list[tuple[bytes, bytes]]:
             return [
                 (b"content-type", b"application/json"),
                 (b"authorization", b"Bearer token123"),
@@ -28,12 +24,10 @@ class TestHeadersBenchmarks:
 
         benchmark(create_headers)
 
-    def test_header_dict_creation_benchmark(
-        self, benchmark: pytest.BenchmarkFixture
-    ) -> None:
+    def test_header_dict_creation_benchmark(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark creating header dict."""
 
-        def create_header_dict():
+        def create_header_dict() -> dict[str, str]:
             return {
                 "content-type": "application/json",
                 "authorization": "Bearer token123",

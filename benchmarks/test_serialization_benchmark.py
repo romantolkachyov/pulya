@@ -1,7 +1,12 @@
-"""Benchmark tests for JSON serialization in the Pulya framework."""
+"""
+Benchmark tests for JSON serialization in the Pulya framework.
+
+This module benchmarks JSON serialization performance with various payload sizes.
+"""
 
 import msgspec
 import pytest
+from pytest_benchmark.fixture import BenchmarkFixture
 
 # Test data for different payload sizes
 SMALL_PAYLOAD = {"id": 1, "name": "test"}
@@ -15,31 +20,29 @@ LARGE_PAYLOAD = {
 class TestSerializationBenchmarks:
     """Benchmark suite for serialization performance."""
 
-    def test_small_json_serialization(self, benchmark: pytest.BenchmarkFixture) -> None:
+    def test_small_json_serialization(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark small JSON payload serialization."""
         encoder = msgspec.json.Encoder()
 
-        def serialize():
+        def serialize() -> None:
             encoder.encode(SMALL_PAYLOAD)
 
         benchmark(serialize)
 
-    def test_medium_json_serialization(
-        self, benchmark: pytest.BenchmarkFixture
-    ) -> None:
+    def test_medium_json_serialization(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark medium JSON payload serialization."""
         encoder = msgspec.json.Encoder()
 
-        def serialize():
+        def serialize() -> None:
             encoder.encode(MEDIUM_PAYLOAD)
 
         benchmark(serialize)
 
-    def test_large_json_serialization(self, benchmark: pytest.BenchmarkFixture) -> None:
+    def test_large_json_serialization(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark large JSON payload serialization."""
         encoder = msgspec.json.Encoder()
 
-        def serialize():
+        def serialize() -> None:
             encoder.encode(LARGE_PAYLOAD)
 
         benchmark(serialize)

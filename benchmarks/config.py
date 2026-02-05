@@ -98,7 +98,8 @@ def get_sample_route(route_type: str) -> tuple[str, ...]:
         return tuple(STATIC_ROUTES)
     if route_type == "dynamic":
         return tuple(DYNAMIC_ROUTES)
-    raise ValueError(f"Invalid route type: {route_type}")
+    error_msg = f"Invalid route type: {route_type}"
+    raise ValueError(error_msg)
 
 
 def get_sample_headers() -> dict[str, str]:

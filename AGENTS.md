@@ -1,5 +1,22 @@
 # Agent Development Guide
+## Requirements After Each Modification
 
+After making ANY code modifications, agents MUST:
+
+1. **Run benchmarks**: `uv run pytest benchmarks/ -v`
+   - Ensure all benchmark tests pass
+   - Verify benchmark performance is acceptable
+
+2. **Run pre-commit**: `uv run pre-commit run --all-files`
+   - Fix all style issues (ruff, mypy, formatting)
+   - Ensure no linting errors remain
+
+3. **Check 100% test coverage**: `uv run pytest --cov=pulya --cov-fail-under=100`
+   - The project requires 100% test coverage
+   - No code coverage regressions allowed
+   - If coverage drops below 100%, additional tests must be added
+
+**IMPORTANT**: These checks must pass before any branch can be created or commit made. No exceptions.
 This file provides essential information for AI agents working on this codebase.
 
 ## Project Overview
