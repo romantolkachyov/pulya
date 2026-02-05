@@ -35,7 +35,8 @@ class TestEndToEndBenchmarks:
 
         benchmark(create_router)
 
-    def test_route_matching_multiple(self) -> None:
+    @pytest.mark.benchmark
+    def test_route_matching_multiple(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark matching multiple routes."""
         router = Router()
         router.add_route(HTTPMethod.GET, "/", lambda: "index")
@@ -62,3 +63,5 @@ class TestEndToEndBenchmarks:
             router.match_route(HTTPMethod.GET, "/api/v1/posts")
             router.match_route(HTTPMethod.GET, f"/api/v1/users/{user_id}")
             router.match_route(HTTPMethod.GET, f"/api/v1/posts/{post_id}")
+
+        benchmark(match_all_routes)
