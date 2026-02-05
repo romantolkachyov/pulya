@@ -82,6 +82,8 @@ Benchmark Results using wrk with 12 threads
 └───────────┴──────────────┴──────────────┘
 ```
 
+Uvicorn:
+
 ```
 wrk -t12 -c400 -d10s -s wrk_script.lua http://localhost:8000/echo
 Running 10s test @ http://localhost:8000/echo
@@ -92,4 +94,18 @@ Running 10s test @ http://localhost:8000/echo
   1400773 requests in 10.10s, 221.76MB read
 Requests/sec: 138690.14
 Transfer/sec:     21.96MB
+```
+
+Granian:
+
+```
+wrk -t12 -c400 -d10s -s wrk_script.lua http://localhost:8000/echo
+Running 10s test @ http://localhost:8000/echo
+  12 threads and 400 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     8.90ms   14.66ms 133.29ms   89.34%
+    Req/Sec     7.51k   833.27    10.94k    69.75%
+  896147 requests in 10.00s, 125.63MB read
+Requests/sec:  89588.07
+Transfer/sec:     12.56MB
 ```
