@@ -12,6 +12,8 @@ from pulya.routing import Router
 class TestContainer(DeclarativeContainer):
     """Test container for benchmarking."""
 
+    __test__ = False
+
 
 @pytest.mark.benchmark
 class TestEndToEndBenchmarks:
