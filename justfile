@@ -36,25 +36,24 @@ benchmark:
 
     echo "Running benchmarks..."
 
-    # Create markdown report header using a shell script
-    cat > "${BASELINE_DIR}/baseline-${DATE}.md" << EOF
-# Performance Baseline Report
+    # Create markdown report with header
+    echo "# Performance Baseline Report" > "${BASELINE_DIR}/baseline-${DATE}.md"
+    echo "" >> "${BASELINE_DIR}/baseline-${DATE}.md"
+    echo "**Date:** $(date '+%Y-%m-%d %H:%M:%S')" >> "${BASELINE_DIR}/baseline-${DATE}.md"
+    echo "**Git Commit:** $(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')" >> "${BASELINE_DIR}/baseline-${DATE}.md"
+    echo "**Python:** $(python --version 2>&1)" >> "${BASELINE_DIR}/baseline-${DATE}.md"
+    echo "" >> "${BASELINE_DIR}/baseline-${DATE}.md"
+    echo "## Benchmark Results" >> "${BASELINE_DIR}/baseline-${DATE}.md"
+    echo "" >> "${BASELINE_DIR}/baseline-${DATE}.md"
+    echo '```' >> "${BASELINE_DIR}/baseline-${DATE}.md"
+    echo "" >> "${BASELINE_DIR}/baseline-${DATE}.md"
 
-**Date:**
-**Git Commit:**
-**Python:**
-
-## Benchmark Results
-
-\("""
-EOF
-
-    # Run benchmarks and append output to markdown
+    # Run benchmarks and append output
     uv run pytest benchmarks/ -v --benchmark-only --benchmark-storage="${BASELINE_DIR}" >> "${BASELINE_DIR}/baseline-${DATE}.md" 2>&1 || true
 
-    # Close the code block
+    # Close code block
     echo "" >> "${BASELINE_DIR}/baseline-${DATE}.md"
-    echo "\(\"\)" >> "${BASELINE_DIR}/baseline-${DATE}.md"
+    echo '```' >> "${BASELINE_DIR}/baseline-${DATE}.md"
 
     echo ""
     echo "Benchmark complete! Report saved to:"
@@ -96,7 +95,9 @@ clean:
     find . -type f -name "*.pyc" -delete
 
 # Run all checks (tests, lint, coverage)
-check: test lint
+check:
+    test
+    lint
     @echo "All checks passed!"
 
 # Install development dependencies
