@@ -85,26 +85,11 @@ class Pulya[T: DeclarativeContainer](Router, RSGIApplication, ASGIApplication):
         self._di_lock = threading.Lock()
 
     async def handle_http_request(self, request: Request) -> Any:
-        if (
-            request is None
-            or not hasattr(request, "method")
-            or not hasattr(request, "path")
-        ):
-            return None
-
         match = self.match_route(request.method, request.path)
 
         if match is None:
             # Use pre-encoded 404 response if available
-            pre_encoded = self.get_pre_encoded_error_response(HTTPStatus.NOT_FOUND)
-            if pre_encoded:
-                return pre_encoded
-            # If no pre-encoded response, create a new one
-            return Response(
-                status=HTTPStatus.NOT_FOUND,
-                headers=[],
-                content=msgspec.json.encode({"error": "Not found."}),
-            )
+            return self.get_pre_encoded_error_response(HTTPStatus.NOT_FOUND)
         route, match_dict = match
         validated_path_params = msgspec.convert(
             match_dict, type=route.path_params_schema, strict=False

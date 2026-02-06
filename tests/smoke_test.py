@@ -8,7 +8,7 @@ from http import HTTPMethod, HTTPStatus
 from dependency_injector import containers
 
 from pulya import Pulya
-from pulya.headers import Headers, ManyStrategy
+from pulya.headers import Headers
 from pulya.responses import Response
 
 
@@ -41,20 +41,7 @@ async def test_no_pre_encoded_error() -> None:
 
         @property
         def headers(self) -> Headers:
-            # Return a minimal Headers implementation for testing
-            class SimpleHeaders:
-                def get(
-                    self,
-                    key: str,
-                    default: str | None = None,
-                    strategy: ManyStrategy = ManyStrategy.warn,
-                ) -> str | None:
-                    return default
-
-                def get_list(self, key: str) -> list[str]:
-                    return []
-
-            return SimpleHeaders()
+            return Headers()
 
         async def get_content(self) -> bytes:
             return b""
@@ -65,14 +52,6 @@ async def test_no_pre_encoded_error() -> None:
         response is not None
     )  # Should return a Response object for ASGI compatibility
     assert response.status == HTTPStatus.NOT_FOUND
-
-
-async def test_not_found_response() -> None:
-    """Test that NOT_FOUND response is returned when no route matches."""
-    app = Pulya(ExampleContainer)
-    # Simulate a request with no matching route
-    response = await app.handle_http_request(None)
-    assert response is None
 
 
 def test_pre_encoded_error_response() -> None:
@@ -89,7 +68,8 @@ def test_no_pre_encoded_error_response() -> None:
 
     # Use a clearly non-standard status code (999) not in PRE_ENCODED_ERRORS
     status = 999  # Arbitrary invalid status code
-    response = Response.get_pre_encoded_error_response(status)
+    # Ignore arg type, we can't create HTTPStatus with undefined status
+    response = Response.get_pre_encoded_error_response(status)  # type: ignore[arg-type]
     assert response is None
 
 
