@@ -55,7 +55,7 @@ class Scope:
     #: (empty on HTTP versions prior to 2)
     authority: str | None
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         proto: Literal["http", "ws"],
         rsgi_version: str,

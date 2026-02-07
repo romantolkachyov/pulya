@@ -56,25 +56,25 @@ jobs:
 
       - name: Compare against baseline
         run: |
-          python -c "
+          python -c '
           import json
           import os
           from pathlib import Path
 
           # Load current results
-          with open('${{ steps.benchmark.outputs.report_file }}', 'r') as f:
+          with open("${{ steps.benchmark.outputs.report_file }}", "r") as f:
               current_results = json.load(f)
 
           # Find the latest baseline file (sorted by modification time)
-          baselines_dir = Path('performance-reports/baselines')
+          baselines_dir = Path("performance-reports/baselines")
           if not baselines_dir.exists():
-              print('No baseline directory found - skipping comparison')
+              print("No baseline directory found - skipping comparison")
               exit(0)
 
           # Get all JSON files in baselines directory
-          json_baselines = list(baselines_dir.glob('**/*.json'))
+          json_baselines = list(baselines_dir.glob("**/*.json"))
           if not json_baselines:
-              print('No baseline JSON files found - skipping comparison')
+              print("No baseline JSON files found - skipping comparison")
               exit(0)
 
           # Sort by modification time (newest first)
@@ -82,7 +82,7 @@ jobs:
           latest_baseline = json_baselines[0]
 
           # Load baseline results
-          with open(latest_baseline, 'r') as f:
+          with open(latest_baseline, "r") as f:
               baseline_results = json.load(f)
 
           # Compare performance metrics (assuming same structure in both files)
@@ -93,8 +93,8 @@ jobs:
 
               baseline_metrics = baseline_results[benchmark_name]
 
-              # Check each metric for regression (example: checking 'time' or 'duration')
-              for metric in ['time', 'duration']:
+              # Check each metric for regression (example: checking "time" or "duration")
+              for metric in ["time", "duration"]:
                   if metric in current_metrics and metric in baseline_metrics:
                       baseline_value = baseline_metrics[metric]
                       current_value = current_metrics[metric]
@@ -105,14 +105,14 @@ jobs:
 
                           # Fail if performance degrades by more than 5%
                           if percent_change > 5.0:
-                              print(f'⚠️  Performance regression detected in {benchmark_name} ({metric}):')
-                              print(f'   Baseline: {baseline_value:.4f}, Current: {current_value:.4f}')
-                              print(f'   Change: +{percent_change:.2f}% (regression)')
+                              print(f"⚠️  Performance regression detected in {benchmark_name} ({metric}):")
+                              print(f"   Baseline: {baseline_value:.4f}, Current: {current_value:.4f}")
+                              print(f"   Change: +{percent_change:.2f}% (regression)")
                               regression_detected = True
 
           # Exit with failure if any regression was detected
           if regression_detected:
               exit(1)
           else:
-              print('✓ No performance regressions detected')
-          ""
+              print("✓ No performance regressions detected")
+          '"

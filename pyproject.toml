@@ -30,7 +30,8 @@ dependencies = [
   "msgspec",
   "python-matchit",
   "asgiref",
-  "granian>=2.6.1"
+  "granian>=2.6.1",
+  "orjson"
 ]
 
 [tool.coverage.report]
@@ -74,7 +75,7 @@ target-version = "py312"
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
 select = ["ALL"]
-ignore = ["COM812", "D203", "D212", "D", "ANN401", "TD003", "FIX002"]
+ignore = ["COM812", "D203", "D212", "D", "ANN401", "TD003", "FIX002", "PLR0913"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "D"]
+"tests/*" = ["S101", "D", "PLR2004"]

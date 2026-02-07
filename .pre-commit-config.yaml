@@ -42,4 +42,4 @@ repos:
     hooks:
       - id: mypy
         args: [ --strict ]
-        additional_dependencies: [ httpx, msgspec, asgiref, dependency-injector, python-matchit, pulya, pytest, pytest_benchmark ]
+        additional_dependencies: [ httpx, msgspec, asgiref, dependency-injector, python-matchit, pulya, pytest, pytest_benchmark, orjson ]
