@@ -14,7 +14,6 @@ Three key optimizations:
 
 ### Phase 2: Advanced Optimizations
 1. Trie-based routing with python-matchit (reverted)
-2. orjson for high-performance JSON serialization
 3. Async lock implementation with `asyncio.Lock`
 
 ### Phase 3: Header Optimization (In Progress - Partial)
@@ -70,17 +69,6 @@ Three key optimizations:
 **Performance Impact**:
 - Dynamic route matching: 45.10% faster
 - Static route matching: 28.60% faster
-
-#### 5. orjson Integration
-**File**: `src/pulya/responses.py`
-- Replaced standard json with orjson for high-performance serialization
-- Zero-copy serialization for supported types
-- Native async support
-
-**Performance Impact**:
-- Small JSON serialization: 65.12% faster
-- Medium JSON serialization: 78.34% faster
-- Large JSON serialization: 82.15% faster
 
 #### 6. Async Lock Implementation
 **File**: `src/pulya/containers.py`

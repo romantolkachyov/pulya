@@ -21,7 +21,7 @@
 
 ### Phase 2 - Core Optimizations ✅ COMPLETE
 - 2.1 Route Trie - ATTEMPTED BUT REVERTED (caused 30% slowdown, matchit-only approach is optimal)
-- 2.2 Optional orjson encoder support ✅ (implemented with fallback)
+- 2.2 ~~Optional orjson encoder support~~ ❌ (removed - does not support free-threaded Python)
 - 2.3 Replace threading.Lock with asyncio.Lock ✅ (completed)
 
 ### Phase 3 - Advanced Optimizations 🔄 IN PROGRESS
