@@ -5,6 +5,8 @@ from pulya.headers import Headers
 
 
 class Request(Protocol):
+    __slots__ = ()
+
     @property
     def method(self) -> HTTPMethod: ...
 

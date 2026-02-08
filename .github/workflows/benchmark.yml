@@ -1,0 +1,125 @@
+# This workflow runs benchmarks and detects performance regressions
+name: Benchmark
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: python-benchmark
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Restore uv cache
+        uses: actions/cache@v5
+        with:
+          path: /tmp/.uv-cache
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+            uv-${{ runner.os }}
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3-dev
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Run benchmarks
+        run: |
+          mkdir -p .benchmarks
+          uv run pytest benchmarks/ --benchmark-json=.benchmarks/current.json -v
+
+      - name: Compare against baseline
+        run: |
+          python3 << 'EOF'
+          import json
+          import sys
+          from pathlib import Path
+
+          # Load current results
+          with open('.benchmarks/current.json', 'r') as f:
+              current_results = json.load(f)
+
+          # Check if baseline exists
+          baseline_file = Path('.benchmarks/baseline.json')
+          if not baseline_file.exists():
+              print('No baseline found. Creating baseline from current results.')
+              with open(baseline_file, 'w') as f:
+                  json.dump(current_results, f, indent=2)
+              print('✓ Baseline created successfully')
+              sys.exit(0)
+
+          # Load baseline results
+          with open(baseline_file, 'r') as f:
+              baseline_results = json.load(f)
+
+          # Compare benchmarks
+          print('Benchmark Comparison Results:')
+          print('=' * 70)
+          print(f'{"Benchmark Name":<40} {"Baseline":<12} {"Current":<12} {"Change":<10}')
+          print('-' * 70)
+
+          regression_detected = False
+          regressions = []
+
+          # Create lookup dict for baseline
+          baseline_dict = {b['name']: b for b in baseline_results.get('benchmarks', [])}
+
+          for current in current_results.get('benchmarks', []):
+              name = current['name']
+              current_mean = current.get('stats', {}).get('mean', 0)
+
+              if name in baseline_dict:
+                  baseline_mean = baseline_dict[name].get('stats', {}).get('mean', 0)
+
+                  if baseline_mean > 0:
+                      percent_change = ((current_mean - baseline_mean) / baseline_mean) * 100
+
+                      # Check for regression (> 5% slower)
+                      if percent_change > 5.0:
+                          regressions.append({
+                              'name': name,
+                              'baseline': baseline_mean,
+                              'current': current_mean,
+                              'change': percent_change
+                          })
+                          regression_detected = True
+                          status = "⚠️ REGRESSION"
+                      else:
+                          status = ""
+
+                      print(f'{name:<40} {baseline_mean:<12.6f} {current_mean:<12.6f} {percent_change:>+6.1f}% {status}')
+                  else:
+                      print(f'{name:<40} {baseline_mean:<12.6f} {current_mean:<12.6f} {"N/A":<10}')
+              else:
+                  print(f'{name:<40} {"N/A":<12} {current_mean:<12.6f} {"NEW":<10}')
+
+          print('=' * 70)
+
+          if regression_detected:
+              print(f'\n❌ Performance regressions detected ({len(regressions)} tests):')
+              for reg in regressions:
+                  print(f"  - {reg['name']}: +{reg['change']:.1f}% slower")
+              sys.exit(1)
+          else:
+              print('\n✓ No performance regressions detected')
+              sys.exit(0)
+          EOF

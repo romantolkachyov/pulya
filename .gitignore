@@ -18,3 +18,9 @@ coverage.xml
 
 # MacOS
 .DS_Store
+
+# Performance reports (JSON files are too large, keep only markdown)
+performance-reports/baselines/*.json
+performance-reports/baselines/*/*.json
+performance-reports/results/
+.benchmarks/
