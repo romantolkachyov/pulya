@@ -30,8 +30,7 @@ dependencies = [
   "msgspec",
   "python-matchit",
   "asgiref",
-  "granian>=2.6.1",
-  "orjson"
+  "granian>=2.6.1"
 ]
 
 [tool.coverage.report]
