@@ -34,85 +34,92 @@ jobs:
             uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
             uv-${{ runner.os }}
 
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3-dev
+
       - name: Install the project
         run: uv sync --locked --all-extras --dev
 
-      - name: Run benchmarks and generate report
-        id: benchmark
+      - name: Run benchmarks
         run: |
-          # Run benchmarks and save results to a timestamped JSON file
-          mkdir -p performance-reports/results
-          timestamp=$(date +%Y%m%d_%H%M%S)
-          report_file="performance-reports/results/benchmark-results-$timestamp.json"
-
-          # Run benchmarks with pytest and capture output
-          benchmark_output=$(uv run pytest benchmarks/ -v --durations=0 --no-header --capture=no 2>&1 | tee /dev/stderr)
-
-          # Extract benchmark results (assuming JSON output format)
-          echo "$benchmark_output" > $report_file
-
-          # Set output for use in subsequent steps
-          echo "report_file=$report_file" >> $GITHUB_OUTPUT
+          mkdir -p .benchmarks
+          uv run pytest benchmarks/ --benchmark-json=.benchmarks/current.json -v
 
       - name: Compare against baseline
         run: |
-          python -c '
+          python3 << 'EOF'
           import json
-          import os
+          import sys
           from pathlib import Path
 
           # Load current results
-          with open("${{ steps.benchmark.outputs.report_file }}", "r") as f:
+          with open('.benchmarks/current.json', 'r') as f:
               current_results = json.load(f)
 
-          # Find the latest baseline file (sorted by modification time)
-          baselines_dir = Path("performance-reports/baselines")
-          if not baselines_dir.exists():
-              print("No baseline directory found - skipping comparison")
-              exit(0)
-
-          # Get all JSON files in baselines directory
-          json_baselines = list(baselines_dir.glob("**/*.json"))
-          if not json_baselines:
-              print("No baseline JSON files found - skipping comparison")
-              exit(0)
-
-          # Sort by modification time (newest first)
-          json_baselines.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-          latest_baseline = json_baselines[0]
+          # Check if baseline exists
+          baseline_file = Path('.benchmarks/baseline.json')
+          if not baseline_file.exists():
+              print('No baseline found. Creating baseline from current results.')
+              with open(baseline_file, 'w') as f:
+                  json.dump(current_results, f, indent=2)
+              print('✓ Baseline created successfully')
+              sys.exit(0)
 
           # Load baseline results
-          with open(latest_baseline, "r") as f:
+          with open(baseline_file, 'r') as f:
               baseline_results = json.load(f)
 
-          # Compare performance metrics (assuming same structure in both files)
+          # Compare benchmarks
+          print('Benchmark Comparison Results:')
+          print('=' * 70)
+          print(f'{"Benchmark Name":<40} {"Baseline":<12} {"Current":<12} {"Change":<10}')
+          print('-' * 70)
+
           regression_detected = False
-          for benchmark_name, current_metrics in current_results.items():
-              if benchmark_name not in baseline_results:
-                  continue
+          regressions = []
 
-              baseline_metrics = baseline_results[benchmark_name]
+          # Create lookup dict for baseline
+          baseline_dict = {b['name']: b for b in baseline_results.get('benchmarks', [])}
 
-              # Check each metric for regression (example: checking "time" or "duration")
-              for metric in ["time", "duration"]:
-                  if metric in current_metrics and metric in baseline_metrics:
-                      baseline_value = baseline_metrics[metric]
-                      current_value = current_metrics[metric]
+          for current in current_results.get('benchmarks', []):
+              name = current['name']
+              current_mean = current.get('stats', {}).get('mean', 0)
 
-                      # Calculate percentage change
-                      if baseline_value > 0:
-                          percent_change = ((current_value - baseline_value) / baseline_value) * 100
+              if name in baseline_dict:
+                  baseline_mean = baseline_dict[name].get('stats', {}).get('mean', 0)
 
-                          # Fail if performance degrades by more than 5%
-                          if percent_change > 5.0:
-                              print(f"⚠️  Performance regression detected in {benchmark_name} ({metric}):")
-                              print(f"   Baseline: {baseline_value:.4f}, Current: {current_value:.4f}")
-                              print(f"   Change: +{percent_change:.2f}% (regression)")
-                              regression_detected = True
+                  if baseline_mean > 0:
+                      percent_change = ((current_mean - baseline_mean) / baseline_mean) * 100
 
-          # Exit with failure if any regression was detected
+                      # Check for regression (> 5% slower)
+                      if percent_change > 5.0:
+                          regressions.append({
+                              'name': name,
+                              'baseline': baseline_mean,
+                              'current': current_mean,
+                              'change': percent_change
+                          })
+                          regression_detected = True
+                          status = "⚠️ REGRESSION"
+                      else:
+                          status = ""
+
+                      print(f'{name:<40} {baseline_mean:<12.6f} {current_mean:<12.6f} {percent_change:>+6.1f}% {status}')
+                  else:
+                      print(f'{name:<40} {baseline_mean:<12.6f} {current_mean:<12.6f} {"N/A":<10}')
+              else:
+                  print(f'{name:<40} {"N/A":<12} {current_mean:<12.6f} {"NEW":<10}')
+
+          print('=' * 70)
+
           if regression_detected:
-              exit(1)
+              print(f'\n❌ Performance regressions detected ({len(regressions)} tests):')
+              for reg in regressions:
+                  print(f"  - {reg['name']}: +{reg['change']:.1f}% slower")
+              sys.exit(1)
           else:
-              print("✓ No performance regressions detected")
-          '
+              print('\n✓ No performance regressions detected')
+              sys.exit(0)
+          EOF

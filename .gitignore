@@ -23,3 +23,4 @@ coverage.xml
 performance-reports/baselines/*.json
 performance-reports/baselines/*/*.json
 performance-reports/results/
+.benchmarks/
