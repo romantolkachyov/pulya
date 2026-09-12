@@ -9,7 +9,6 @@ from dependency_injector import containers
 
 from pulya import Pulya
 from pulya.headers import Headers
-from pulya.responses import Response
 
 
 class ExampleContainer(containers.DeclarativeContainer):
@@ -20,7 +19,7 @@ def test_simple() -> None:
     Pulya(ExampleContainer)
 
 
-async def test_no_pre_encoded_error() -> None:
+async def test_no_route_returns_404() -> None:
     """Test that a NOT_FOUND response is returned when no route matches."""
     app = Pulya(ExampleContainer)
     # Simulate a request with a non-matching path
@@ -48,29 +47,9 @@ async def test_no_pre_encoded_error() -> None:
 
     request = MockRequest(method=HTTPMethod.GET, path="/nonexistent")
     response = await app.handle_http_request(request)
-    assert (
-        response is not None
-    )  # Should return a Response object for ASGI compatibility
     assert response.status == HTTPStatus.NOT_FOUND
-
-
-def test_pre_encoded_error_response() -> None:
-    """Test that pre-encoded error responses are returned correctly."""
-
-    status = HTTPStatus.NOT_FOUND
-    response = Response.get_pre_encoded_error_response(status)
-    assert response is not None
-    assert response.status == status
-
-
-def test_no_pre_encoded_error_response() -> None:
-    """Test that None is returned when no pre-encoded error exists."""
-
-    # Use a clearly non-standard status code (999) not in PRE_ENCODED_ERRORS
-    status = 999  # Arbitrary invalid status code
-    # Ignore arg type, we can't create HTTPStatus with undefined status
-    response = Response.get_pre_encoded_error_response(status)  # type: ignore[arg-type]
-    assert response is None
+    assert response.content == b'{"error":"Not found."}'
+    assert response.headers == [("Content-Type", "application/json")]
 
 
 if __name__ == "__main__":

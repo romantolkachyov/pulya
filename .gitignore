@@ -15,9 +15,13 @@ coverage.xml
 
 # IDEs
 .idea
+.vscode
 
 # MacOS
 .DS_Store
+
+# Agents
+.opencode
 
 # Performance reports (JSON files are too large, keep only markdown)
 performance-reports/baselines/*.json

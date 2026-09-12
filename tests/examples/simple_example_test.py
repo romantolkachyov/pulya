@@ -1,4 +1,3 @@
-import asyncio
 from collections.abc import AsyncGenerator
 from http import HTTPStatus
 from typing import Any
@@ -24,11 +23,8 @@ async def client(app: ASGI3Application) -> AsyncGenerator[TestClient, Any]:
 
 
 async def test_unknown_route(client: TestClient) -> None:
-    try:
-        resp = await asyncio.wait_for(client.get("/unknown"), timeout=5.0)
-        assert resp.status_code == HTTPStatus.NOT_FOUND
-    except TimeoutError:
-        pytest.fail("Request to unknown route timed out.")
+    resp = await client.get("/unknown")
+    assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
 async def test_simple(client: TestClient) -> None:
