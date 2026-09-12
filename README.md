@@ -133,7 +133,10 @@ Run benchmarks to measure performance:
 # Run benchmarks and generate timestamped report
 just benchmark
 
-# Compare current code against the latest baseline
+# Save results as the local reference baseline (run on master)
+just benchmark-baseline
+
+# Compare current code against the baseline
 just benchmark-compare
 
 # Compare against a specific baseline

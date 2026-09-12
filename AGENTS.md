@@ -80,6 +80,9 @@ just pre-commit
 # Run benchmarks and save results
 just benchmark
 
+# Save current results as the local reference baseline (run on master)
+just benchmark-baseline
+
 # Run benchmarks and compare against baseline
 just benchmark-compare
 
@@ -110,6 +113,7 @@ just benchmark
 To compare against the baseline (JSON results are gitignored, reports are paired by benchmark name):
 ```bash
 just benchmark-compare
+# uses performance-reports/baselines/master.json saved by `just benchmark-baseline`;
 # or against a specific baseline:
 just benchmark-compare performance-reports/baselines/baseline-YYYYMMDD.json
 ```

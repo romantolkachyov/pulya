@@ -33,6 +33,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("baseline", type=Path, help="Baseline JSON report")
     parser.add_argument("current", type=Path, help="Current JSON report")
+    parser.add_argument(
+        "--fail-on-regression",
+        type=float,
+        metavar="PCT",
+        default=None,
+        help="Exit with code 1 if any benchmark is more than PCT %% slower",
+    )
     args = parser.parse_args()
 
     baseline = load_benchmarks(args.baseline)
@@ -64,6 +71,22 @@ def main() -> None:
             f"{format_time(curr_mean):>12}  {change:+6.1f}%  {verdict}"
         )
     print()
+
+    if args.fail_on_regression is not None:
+        regressions = [
+            (name, change)
+            for name, _, _, change in rows
+            if change > args.fail_on_regression
+        ]
+        if regressions:
+            print(
+                f"Performance regressions detected "
+                f"(threshold +{args.fail_on_regression:.1f}%):"
+            )
+            for name, change in regressions:
+                print(f"  - {name}: +{change:.1f}% slower")
+            raise SystemExit(1)
+        print(f"No regressions above +{args.fail_on_regression:.1f}%")
 
 
 if __name__ == "__main__":

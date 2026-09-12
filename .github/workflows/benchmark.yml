@@ -1,14 +1,25 @@
-# This workflow runs benchmarks and detects performance regressions
+# This workflow runs benchmarks and detects performance regressions.
+# CI compares CI runs against CI runs: the baseline is a JSON report produced
+# by a master run on the same runners, passed through actions/cache.
+# Cache entries die after 7 days without access, so after a long project
+# inactivity run this workflow manually on master ("workflow_dispatch")
+# to rebuild the baseline.
 name: Benchmark
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  # Keep in sync with BENCH_FLAGS in the justfile.
+  BENCH_FLAGS: "--benchmark-min-rounds=50 --benchmark-max-time=5.0 --benchmark-disable-gc --benchmark-warmup-iterations=100"
+  PYTHONHASHSEED: "0"
 
 jobs:
   benchmark:
@@ -44,82 +55,33 @@ jobs:
 
       - name: Run benchmarks
         run: |
-          mkdir -p .benchmarks
-          uv run pytest benchmarks/ --benchmark-json=.benchmarks/current.json -v
+          uv run pytest benchmarks/ --benchmark-only ${BENCH_FLAGS} --benchmark-json=benchmark-current.json
+
+      - name: Restore baseline (pull requests only)
+        if: github.event_name == 'pull_request'
+        id: baseline-cache
+        uses: actions/cache/restore@v4
+        with:
+          # Unique key per master run; prefix match picks the freshest one.
+          key: pulya-bench-
+          restore-keys: pulya-bench-
 
       - name: Compare against baseline
+        if: github.event_name == 'pull_request' && steps.baseline-cache.outputs.cache-hit == 'true'
         run: |
-          python3 << 'EOF'
-          import json
-          import sys
-          from pathlib import Path
+          uv run python tools/compare_benchmarks.py benchmark-master.json benchmark-current.json --fail-on-regression 15
 
-          # Load current results
-          with open('.benchmarks/current.json', 'r') as f:
-              current_results = json.load(f)
+      - name: Report missing baseline
+        if: github.event_name == 'pull_request' && steps.baseline-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "::warning::No benchmark baseline found in cache. Run the Benchmark workflow on master to create one; skipping comparison."
 
-          # Check if baseline exists
-          baseline_file = Path('.benchmarks/baseline.json')
-          if not baseline_file.exists():
-              print('No baseline found. Creating baseline from current results.')
-              with open(baseline_file, 'w') as f:
-                  json.dump(current_results, f, indent=2)
-              print('✓ Baseline created successfully')
-              sys.exit(0)
-
-          # Load baseline results
-          with open(baseline_file, 'r') as f:
-              baseline_results = json.load(f)
-
-          # Compare benchmarks
-          print('Benchmark Comparison Results:')
-          print('=' * 70)
-          print(f'{"Benchmark Name":<40} {"Baseline":<12} {"Current":<12} {"Change":<10}')
-          print('-' * 70)
-
-          regression_detected = False
-          regressions = []
-
-          # Create lookup dict for baseline
-          baseline_dict = {b['name']: b for b in baseline_results.get('benchmarks', [])}
-
-          for current in current_results.get('benchmarks', []):
-              name = current['name']
-              current_mean = current.get('stats', {}).get('mean', 0)
-
-              if name in baseline_dict:
-                  baseline_mean = baseline_dict[name].get('stats', {}).get('mean', 0)
-
-                  if baseline_mean > 0:
-                      percent_change = ((current_mean - baseline_mean) / baseline_mean) * 100
-
-                      # Check for regression (> 5% slower)
-                      if percent_change > 5.0:
-                          regressions.append({
-                              'name': name,
-                              'baseline': baseline_mean,
-                              'current': current_mean,
-                              'change': percent_change
-                          })
-                          regression_detected = True
-                          status = "⚠️ REGRESSION"
-                      else:
-                          status = ""
-
-                      print(f'{name:<40} {baseline_mean:<12.6f} {current_mean:<12.6f} {percent_change:>+6.1f}% {status}')
-                  else:
-                      print(f'{name:<40} {baseline_mean:<12.6f} {current_mean:<12.6f} {"N/A":<10}')
-              else:
-                  print(f'{name:<40} {"N/A":<12} {current_mean:<12.6f} {"NEW":<10}')
-
-          print('=' * 70)
-
-          if regression_detected:
-              print(f'\n❌ Performance regressions detected ({len(regressions)} tests):')
-              for reg in regressions:
-                  print(f"  - {reg['name']}: +{reg['change']:.1f}% slower")
-              sys.exit(1)
-          else:
-              print('\n✓ No performance regressions detected')
-              sys.exit(0)
-          EOF
+      - name: Save baseline (master and manual runs only)
+        if: github.event_name != 'pull_request'
+        run: cp benchmark-current.json benchmark-master.json
+      - name: Cache baseline
+        if: github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          path: benchmark-master.json
+          key: pulya-bench-${{ github.run_id }}

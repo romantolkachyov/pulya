@@ -72,13 +72,16 @@ benchmark-compare baseline="":
     BASELINE_DIR="${REPORT_DIR}/baselines"
     CURRENT_JSON="${BASELINE_DIR}/current.json"
 
-    # Pick the baseline: explicit argument, otherwise the latest baseline-*.json
+    # Pick the baseline: explicit argument > master.json (saved by
+    # benchmark-baseline) > the latest baseline-*.json
     if [ -n "{{ baseline }}" ]; then
         BASELINE_JSON="{{ baseline }}"
+    elif [ -f "${BASELINE_DIR}/master.json" ]; then
+        BASELINE_JSON="${BASELINE_DIR}/master.json"
     else
         BASELINE_JSON=$(ls -1 "${BASELINE_DIR}"/baseline-*.json 2>/dev/null | sort | tail -1)
         if [ -z "${BASELINE_JSON}" ]; then
-            echo "No baseline JSON found in ${BASELINE_DIR}. Run 'just benchmark' first." >&2
+            echo "No baseline JSON found in ${BASELINE_DIR}. Run 'just benchmark-baseline' on master first." >&2
             exit 1
         fi
     fi
@@ -89,6 +92,18 @@ benchmark-compare baseline="":
     echo ""
     echo "Comparing against baseline: ${BASELINE_JSON}"
     uv run python tools/compare_benchmarks.py "${BASELINE_JSON}" "${CURRENT_JSON}"
+
+# Save current benchmark results as the local reference baseline.
+# Run on master before switching to a feature branch.
+benchmark-baseline:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    BASELINE_DIR="performance-reports/baselines"
+    mkdir -p "${BASELINE_DIR}"
+
+    echo "Saving benchmark baseline (performance-reports/baselines/master.json)..."
+    uv run pytest benchmarks/ --benchmark-only {{ BENCH_FLAGS }} --benchmark-json="${BASELINE_DIR}/master.json" > /dev/null
+    echo "Baseline saved. Switch to your branch and run 'just benchmark-compare'."
 # Generate baseline report (one-time setup)
 baseline:
     #!/usr/bin/env bash
