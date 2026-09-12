@@ -46,6 +46,14 @@
 - Collect user performance reports and real-world bottlenecks
 - Prioritize optimizations based on actual usage patterns
 
+### Phase 5 - Benchmark Infrastructure ⏳ PENDING (idea)
+Move the benchmark suite and its results into a separate repository:
+- Trigger benchmark runs from PRs of the main repository (repository_dispatch / workflow_call)
+- Store all run results there with auto-commit — full history for trend analysis
+- Replaces the current `actions/cache` baseline scheme (cache expires after 7 days of
+  inactivity and keeps no history; a dedicated repo makes the baseline persistent
+  and keeps per-run numbers for long-term performance tracking)
+
 ## 4. Current Metrics
 - All tests pass with 100% coverage, 0 ruff errors, 0 mypy errors
 - Benchmarks run with stabilized methodology (fixed iterations/rounds, GC disabled during timing, PYTHONHASHSEED=0); run `just benchmark-compare` for up-to-date numbers

@@ -63,16 +63,19 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           # Unique key per master run; prefix match picks the freshest one.
+          # Note: with restore-keys matches cache-hit is always false, so the
+          # steps below check cache-matched-key instead.
           key: pulya-bench-
           restore-keys: pulya-bench-
+          path: benchmark-master.json
 
       - name: Compare against baseline
-        if: github.event_name == 'pull_request' && steps.baseline-cache.outputs.cache-hit == 'true'
+        if: github.event_name == 'pull_request' && steps.baseline-cache.outputs.cache-matched-key != ''
         run: |
           uv run python tools/compare_benchmarks.py benchmark-master.json benchmark-current.json --fail-on-regression 15
 
       - name: Report missing baseline
-        if: github.event_name == 'pull_request' && steps.baseline-cache.outputs.cache-hit != 'true'
+        if: github.event_name == 'pull_request' && steps.baseline-cache.outputs.cache-matched-key == ''
         run: |
           echo "::warning::No benchmark baseline found in cache. Run the Benchmark workflow on master to create one; skipping comparison."
 
