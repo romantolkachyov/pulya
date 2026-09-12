@@ -16,6 +16,10 @@ from pulya.rsgi import RSGIApplication
 
 active_request: ContextVar[Request] = ContextVar("active_request")
 
+# Pre-encoded body for the 404 response — the hottest error path (scanners,
+# typos, stale links), so we avoid re-encoding it on every request.
+_NOT_FOUND_CONTENT = msgspec.json.encode({"error": "Not found."})
+
 
 class Pulya[T: DeclarativeContainer](Router, RSGIApplication, ASGIApplication):
     """
@@ -37,8 +41,8 @@ class Pulya[T: DeclarativeContainer](Router, RSGIApplication, ASGIApplication):
         if match is None:
             return Response(
                 status=HTTPStatus.NOT_FOUND,
-                headers=[],
-                content=msgspec.json.encode({"error": "Not found."}),
+                headers=[("Content-Type", "application/json")],
+                content=_NOT_FOUND_CONTENT,
             )
         route, match_dict = match
         validated_path_params = msgspec.convert(
@@ -62,9 +66,8 @@ class Pulya[T: DeclarativeContainer](Router, RSGIApplication, ASGIApplication):
             if fut := self.container.init_resources():
                 await fut  # pragma: no cover
             request_container.wiring_config = self.container.wiring_config
-            # DI package has incomplete typings. Will be fixed in the upcoming release.
-            self.container.wire(keep_cache=True)  # type: ignore[call-arg]
-            request_container.wire(keep_cache=True)  # type: ignore[call-arg]
+            self.container.wire(keep_cache=True)
+            request_container.wire(keep_cache=True)
             clear_cache()
 
     async def on_shutdown(self) -> None:
