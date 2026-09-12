@@ -58,6 +58,83 @@ Check:
 curl http://localhost:8000/
 ```
 
+## Dependency injection
+
+Container providers and request-scoped values can be injected directly into
+handler arguments with `Provide` markers — the handler is wired automatically
+on registration, no `@inject` decorator is needed:
+
+```python
+from typing import Annotated, Any
+from dependency_injector import containers
+from dependency_injector.wiring import Provide
+from pulya import Pulya, RequestContainer
+from pulya.headers import Headers
+
+
+class Container(containers.DeclarativeContainer):
+    wiring_config = containers.WiringConfiguration(modules=[__name__])
+
+
+app = Pulya(Container)
+
+
+@app.get("/")
+async def home(
+    headers: Annotated[Headers, Provide[RequestContainer.headers]],
+) -> dict[str, Any]:
+    return {"success": True, "headers": list(headers)}
+```
+
+Request-scoped helpers `Body`, `Header` and `BearerToken` follow the same
+pattern and are resolved from the active request on each call.
+
+### Dependencies with `Depends`
+
+`Depends` declares a handler parameter computed by a plain function on each
+request. The function's arguments are injected by wiring from both the
+application container and the request container — this is the way to compose
+request data with application dependencies (e.g. load the current user from a
+repository using the bearer token from the `Authorization` header, see
+`BearerToken`). The application container and its dependencies stay free of
+HTTP specifics: request data reaches them only through the dependency
+function's arguments.
+
+```python
+from typing import Annotated, Any
+from dependency_injector import containers, providers
+from dependency_injector.wiring import Provide
+from pulya import BearerToken, Depends, Pulya
+
+
+class Container(containers.DeclarativeContainer):
+    wiring_config = containers.WiringConfiguration(modules=[__name__])
+    user_repo = providers.Singleton(UserRepo)
+
+
+async def get_user(
+    token: Annotated[str | None, BearerToken()],
+    repo: Annotated[UserRepo, Provide[Container.user_repo]],
+) -> User:
+    if token is None:
+        return User(name="anonymous")
+    return await repo.fetch_by_token(token)
+
+
+app = Pulya(Container)
+
+
+@app.get("/profile")
+async def profile(user: User = Depends(get_user)) -> dict[str, Any]:
+    return {"user": user.name}
+```
+
+The parameter type is checked against `get_user`'s return type by mypy.
+Dependency functions are plain functions: they can be unit-tested by passing
+arguments directly, without wiring the container. The marker works both as a
+parameter default (`user: User = Depends(get_user)`) and as `Annotated`
+metadata (`user: Annotated[User, Depends(get_user)]`).
+
 ---
 # Development
 

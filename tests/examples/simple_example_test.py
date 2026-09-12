@@ -36,21 +36,46 @@ async def test_simple(client: TestClient) -> None:
 async def test_two_containers_wired(client: TestClient) -> None:
     expected_name = "example"
 
-    resp = await client.get(f"/wiring/{expected_name}")
+    resp = await client.get(
+        f"/wiring/{expected_name}",
+        headers={"Authorization": "Bearer test-token"},
+    )
     assert resp.status_code == HTTPStatus.OK
 
     data = resp.json()
     assert list(data.keys()) == ["test", "user", "name", "headers"]
     assert data["test"] == "ok"
-    assert data["user"] == f"<User /wiring/{expected_name}>"
+    assert data["user"] == "user-for-test-token"
     assert data["name"] == expected_name
-    assert [k for k, v in data["headers"]] == [
-        "host",
+    assert sorted(k for k, v in data["headers"]) == [
         "accept",
         "accept-encoding",
+        "authorization",
         "connection",
+        "host",
         "user-agent",
     ]
+
+
+async def test_two_containers_anonymous_without_token(client: TestClient) -> None:
+    resp = await client.get("/wiring/example")
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json()["user"] == "<Anonymous>"
+
+
+async def test_two_containers_anonymous_with_wrong_scheme(client: TestClient) -> None:
+    resp = await client.get(
+        "/wiring/example",
+        headers={"Authorization": "Basic dXNlcjpwYXNz"},
+    )
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json()["user"] == "<Anonymous>"
+
+
+async def test_two_containers_anonymous_with_bare_scheme(client: TestClient) -> None:
+    resp = await client.get("/wiring/example", headers={"Authorization": "Bearer"})
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json()["user"] == "<Anonymous>"
 
 
 async def test_headers(client: TestClient) -> None:

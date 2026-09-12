@@ -57,6 +57,7 @@ source_pkgs = [
 python_version = "3.12"
 strict = true
 packages = ['pulya', 'tests']
+mypy_path = "src"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -41,5 +41,8 @@ repos:
     rev: v1.19.1
     hooks:
       - id: mypy
-        args: [ --strict ]
-        additional_dependencies: [ httpx, msgspec, asgiref, dependency-injector, python-matchit, pulya, pytest, pytest_benchmark ]
+        # Mirror the project check (just lint): type-check sources and
+        # tests against the local package, not the published one.
+        args: [ src/pulya, tests ]
+        pass_filenames: false
+        additional_dependencies: [ httpx, msgspec, asgiref, dependency-injector, python-matchit, pytest, pytest_benchmark ]
