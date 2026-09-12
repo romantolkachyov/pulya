@@ -11,6 +11,7 @@ Some code patterns cannot be reasonably tested and should be marked with `# prag
 ```python
 try:
     import orjson
+
     ORJSON_AVAILABLE = True
 except ImportError:  # pragma: no cover
     ORJSON_AVAILABLE = False
@@ -84,6 +85,7 @@ Is the code unreachable in normal execution?
 # Import fallbacks - cannot test without breaking imports
 try:
     import fast_optional_dep
+
     HAS_FAST_DEP = True
 except ImportError:  # pragma: no cover
     HAS_FAST_DEP = False
@@ -106,6 +108,7 @@ if sys.version_info < (3, 10):  # pragma: no cover
 # Don't use pragma to avoid testing business logic
 def calculate_price(amount):  # pragma: no cover  # BAD!
     return amount * 1.2
+
 
 # Don't use pragma for error handling that should be tested
 try:

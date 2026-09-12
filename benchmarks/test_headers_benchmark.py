@@ -7,6 +7,8 @@ This module benchmarks performance of HTTP header creation.
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
+from benchmarks.config import run_benchmark
+
 
 @pytest.mark.benchmark
 class TestHeadersBenchmarks:
@@ -22,7 +24,7 @@ class TestHeadersBenchmarks:
                 (b"x-custom-header", b"custom-value"),
             ]
 
-        benchmark(create_headers)
+        run_benchmark(benchmark, create_headers)
 
     def test_header_dict_creation_benchmark(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark creating header dict."""
@@ -34,4 +36,4 @@ class TestHeadersBenchmarks:
                 "x-custom-header": "custom-value",
             }
 
-        benchmark(create_header_dict)
+        run_benchmark(benchmark, create_header_dict)

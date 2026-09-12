@@ -9,6 +9,7 @@ from http import HTTPMethod
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
+from benchmarks.config import run_benchmark
 from pulya.routing import Router
 
 
@@ -30,7 +31,7 @@ class TestRoutingBenchmarks:
             router.match_route(HTTPMethod.GET, "/users")
             router.match_route(HTTPMethod.GET, "/api/v1/users")
 
-        benchmark(match_static)
+        run_benchmark(benchmark, match_static)
 
     def test_dynamic_route_benchmark(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark dynamic route matching performance."""
@@ -50,4 +51,4 @@ class TestRoutingBenchmarks:
             router.match_route(HTTPMethod.GET, "/users/123")
             router.match_route(HTTPMethod.GET, "/posts/456/comments/789")
 
-        benchmark(match_dynamic)
+        run_benchmark(benchmark, match_dynamic)

@@ -65,10 +65,14 @@ class _MethodFactory:
         return _method
 
 
+def _router_factory() -> MatchitRouter[Route]:
+    return MatchitRouter()
+
+
 class Router:
     def __init__(self) -> None:
         self._routers_by_method: dict[HTTPMethod, MatchitRouter[Route]] = defaultdict(
-            lambda: MatchitRouter()
+            _router_factory
         )
 
     get = _MethodFactory(HTTPMethod.GET)

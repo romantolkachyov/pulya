@@ -24,6 +24,11 @@ fix:
 pre-commit:
     uv run pre-commit run --all-files
 
+# Benchmark stability settings: more rounds, no GC pauses during timing,
+# warmup, and fixed hash seed for reproducible runs between processes.
+export PYTHONHASHSEED := "0"
+BENCH_FLAGS := "--benchmark-min-rounds=50 --benchmark-max-time=5.0 --benchmark-disable-gc --benchmark-warmup-iterations=100"
+
 # Run benchmarks and save results with timestamp
 benchmark:
     #!/usr/bin/env bash
@@ -49,7 +54,7 @@ benchmark:
     echo "" >> "${BASELINE_DIR}/baseline-${DATE}.md"
 
     # Run benchmarks and append output
-    uv run pytest benchmarks/ -v --benchmark-only --benchmark-storage="${BASELINE_DIR}" >> "${BASELINE_DIR}/baseline-${DATE}.md" 2>&1 || true
+    uv run pytest benchmarks/ -v --benchmark-only {{ BENCH_FLAGS }} --benchmark-storage="${BASELINE_DIR}" >> "${BASELINE_DIR}/baseline-${DATE}.md" 2>&1 || true
 
     # Close code block
     echo "" >> "${BASELINE_DIR}/baseline-${DATE}.md"
@@ -60,17 +65,30 @@ benchmark:
     echo "  - ${BASELINE_DIR}/baseline-${DATE}.md"
 
 # Run benchmarks and compare against baseline
-benchmark-compare:
+benchmark-compare baseline="":
     #!/usr/bin/env bash
     set -euo pipefail
     REPORT_DIR="performance-reports"
     BASELINE_DIR="${REPORT_DIR}/baselines"
+    CURRENT_JSON="${BASELINE_DIR}/current.json"
 
-    echo "Running benchmarks and comparing against baseline..."
-    uv run pytest benchmarks/ --benchmark-only --benchmark-compare --benchmark-storage="${BASELINE_DIR}"
+    # Pick the baseline: explicit argument, otherwise the latest baseline-*.json
+    if [ -n "{{ baseline }}" ]; then
+        BASELINE_JSON="{{ baseline }}"
+    else
+        BASELINE_JSON=$(ls -1 "${BASELINE_DIR}"/baseline-*.json 2>/dev/null | sort | tail -1)
+        if [ -z "${BASELINE_JSON}" ]; then
+            echo "No baseline JSON found in ${BASELINE_DIR}. Run 'just benchmark' first." >&2
+            exit 1
+        fi
+    fi
+
+    echo "Running benchmarks..."
+    uv run pytest benchmarks/ --benchmark-only {{ BENCH_FLAGS }} --benchmark-json="${CURRENT_JSON}" > /dev/null
 
     echo ""
-    echo "Comparison complete! Results compared against the latest baseline in ${BASELINE_DIR}"
+    echo "Comparing against baseline: ${BASELINE_JSON}"
+    uv run python tools/compare_benchmarks.py "${BASELINE_JSON}" "${CURRENT_JSON}"
 # Generate baseline report (one-time setup)
 baseline:
     #!/usr/bin/env bash
@@ -80,7 +98,7 @@ baseline:
     BASELINE_DIR="${REPORT_DIR}/baselines"
 
     echo "Generating baseline performance report..."
-    uv run pytest benchmarks/ --benchmark-only
+    uv run pytest benchmarks/ --benchmark-only {{ BENCH_FLAGS }}
     echo ""
     echo "Baseline saved. See ${BASELINE_DIR}/BASELINE.md for historical data."
 
@@ -95,9 +113,7 @@ clean:
     find . -type f -name "*.pyc" -delete
 
 # Run all checks (tests, lint, coverage)
-check:
-    test
-    lint
+check: test lint
     @echo "All checks passed!"
 
 # Install development dependencies

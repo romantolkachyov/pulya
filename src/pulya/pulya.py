@@ -66,7 +66,6 @@ class Pulya[T: DeclarativeContainer](Router, RSGIApplication, ASGIApplication):
             if fut := self.container.init_resources():
                 await fut  # pragma: no cover
             request_container.wiring_config = self.container.wiring_config
-            # DI package has incomplete typings. Will be fixed in the upcoming release.
             self.container.wire(keep_cache=True)
             request_container.wire(keep_cache=True)
             clear_cache()

@@ -5,14 +5,51 @@ This module defines benchmark settings, common test data, and categories
 for different types of benchmarks (routing, serialization, etc.).
 """
 
+import time
+from collections.abc import Callable
+from typing import Any
+
+from pytest_benchmark.fixture import BenchmarkFixture
 
 # ========================
 # Benchmark Settings
 # ========================
 
-WARMUP_ITERATIONS = 5
-MIN_ROUNDS = 10
-MAX_TIME = 1.0  # seconds per benchmark
+# Fixed-iteration benchmarking: pytest-benchmark's automatic calibration
+# picks inconsistent iterations-per-round between runs (observed: 1 vs 7),
+# which makes results hard to reproduce. Instead we target a fixed round
+# duration so the ~42ns mach_absolute_time tick is amortized to ~0.1%,
+# plus a manual warmup (pedantic does not warm up on its own).
+ROUND_TARGET_SECONDS = 30e-6
+MAX_ITERATIONS = 1000
+MIN_ROUNDS = 100
+MAX_ROUNDS = 20000
+# Aim for ~0.5s of total timed sampling per benchmark: with only ~3ms of
+# samples (100 rounds x 30us) the mean follows short-lived CPU frequency
+# fluctuations instead of settling.
+BENCH_TARGET_SECONDS = 0.5
+
+
+def run_benchmark(benchmark: BenchmarkFixture, func: Callable[[], Any]) -> None:
+    """Run a benchmark with calibrated iterations and adaptive rounds.
+
+    Picks the iteration count from a single sample so each timed round lasts
+    ~ROUND_TARGET_SECONDS, runs a manual warmup (pedantic does not warm up
+    on its own), then times with pedantic for ~BENCH_TARGET_SECONDS total.
+    """
+    start = time.perf_counter()
+    func()
+    elapsed = time.perf_counter() - start
+    iterations = max(
+        1, min(MAX_ITERATIONS, int(ROUND_TARGET_SECONDS / max(elapsed, 1e-9)))
+    )
+    rounds = max(
+        MIN_ROUNDS, min(MAX_ROUNDS, int(BENCH_TARGET_SECONDS / (iterations * elapsed)))
+    )
+    for _ in range(min(iterations * 10, 2000)):
+        func()
+    benchmark.pedantic(func, rounds=rounds, iterations=iterations)  # type: ignore[no-untyped-call]
+
 
 # ========================
 # Sample Routes

@@ -29,6 +29,7 @@ from typing import Any
 from pulya import Pulya, RequestContainer
 from dependency_injector import containers, providers
 
+
 class Container(containers.DeclarativeContainer):
     # Wiring configuration.
     # RequestContainer will also use this wiring config.
@@ -41,7 +42,9 @@ class Container(containers.DeclarativeContainer):
     # by the application on startup.
     request = providers.Container(RequestContainer)
 
+
 app = Pulya(Container)
+
 
 @app.get("/")
 def home() -> dict[str, Any]:
@@ -130,11 +133,14 @@ Run benchmarks to measure performance:
 # Run benchmarks and generate timestamped report
 just benchmark
 
-# Output will be saved to:
-# performance-reports/baselines/baseline-YYYYMMDD.json
+# Compare current code against the latest baseline
+just benchmark-compare
+
+# Compare against a specific baseline
+just benchmark-compare performance-reports/baselines/baseline-YYYYMMDD.json
 ```
 
-View the baseline report at `performance-reports/baselines/BASELINE.md`.
+Reports are saved to `performance-reports/baselines/` (JSON baselines are gitignored).
 
 ---
 

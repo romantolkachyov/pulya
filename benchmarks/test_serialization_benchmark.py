@@ -8,6 +8,8 @@ import msgspec
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
+from benchmarks.config import run_benchmark
+
 # Test data for different payload sizes
 SMALL_PAYLOAD = {"id": 1, "name": "test"}
 MEDIUM_PAYLOAD = {"users": [{"id": i, "name": f"user_{i}"} for i in range(100)]}
@@ -27,7 +29,7 @@ class TestSerializationBenchmarks:
         def serialize() -> None:
             encoder.encode(SMALL_PAYLOAD)
 
-        benchmark(serialize)
+        run_benchmark(benchmark, serialize)
 
     def test_medium_json_serialization(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark medium JSON payload serialization."""
@@ -36,7 +38,7 @@ class TestSerializationBenchmarks:
         def serialize() -> None:
             encoder.encode(MEDIUM_PAYLOAD)
 
-        benchmark(serialize)
+        run_benchmark(benchmark, serialize)
 
     def test_large_json_serialization(self, benchmark: BenchmarkFixture) -> None:
         """Benchmark large JSON payload serialization."""
@@ -45,4 +47,4 @@ class TestSerializationBenchmarks:
         def serialize() -> None:
             encoder.encode(LARGE_PAYLOAD)
 
-        benchmark(serialize)
+        run_benchmark(benchmark, serialize)

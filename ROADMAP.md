@@ -15,18 +15,18 @@
 - Baseline metrics established
 
 ### Phase 1 - Quick Wins ✅ COMPLETE
-- 1.1 Pre-encoded HTTP error responses (+50% serialization improvement)
+- 1.1 Pre-encoded 404 response body (the hottest error path)
 - 1.2 __slots__ optimization (memory optimization)
-- 1.3 LRU cache for route matching (+69% static, +80% dynamic routing improvement)
+- 1.3 ~~LRU cache for route matching~~ ❌ REVERTED (routing is delegated to python-matchit — a Rust matcher; an extra cache adds overhead without gains)
 
 ### Phase 2 - Core Optimizations ✅ COMPLETE
-- 2.1 Route Trie - ATTEMPTED BUT REVERTED (caused 30% slowdown, matchit-only approach is optimal)
+- 2.1 Route Trie - ATTEMPTED BUT REVERTED (caused slowdown; the matchit-only approach is optimal)
 - 2.2 ~~Optional orjson encoder support~~ ❌ (removed - does not support free-threaded Python)
-- 2.3 Replace threading.Lock with asyncio.Lock ✅ (completed)
+- 2.3 ~~Replace threading.Lock with asyncio.Lock~~ ❌ NOT ADOPTED (`threading.Lock` is only taken in `on_startup`/`on_shutdown`, not on the request path; an `asyncio.Lock` buys nothing there)
 
 ### Phase 3 - Advanced Optimizations 🔄 IN PROGRESS
-- 3.1 Header dictionary optimization ✅ COMPLETE (+28.6% header operations improvement)
-- 3.2 Request/Scope object pooling ✅ COMPLETE (infrastructure implemented)
+- 3.1 Header dictionary optimization ⏳ PENDING (experimental changes exist, not merged)
+- 3.2 ~~Request/Scope object pooling~~ ❌ REMOVED (Request objects are bound to their scope/protocol and cannot be reset safely; pooling infrastructure was dead code)
 - 3.3 Pre-compile routes and cache schemas at startup ⏳ PENDING
 
 ### Phase 4 - Continuous ⏳ PENDING
@@ -47,7 +47,5 @@
 - Prioritize optimizations based on actual usage patterns
 
 ## 4. Current Metrics
-- All tests pass (54 tests, 100% coverage)
-- 0 ruff errors
-- 0 mypy errors
-- Performance: Static routes +28.6%, Dynamic routes +45.1%, Serialization +50%
+- All tests pass with 100% coverage, 0 ruff errors, 0 mypy errors
+- Benchmarks run with stabilized methodology (fixed iterations/rounds, GC disabled during timing, PYTHONHASHSEED=0); run `just benchmark-compare` for up-to-date numbers

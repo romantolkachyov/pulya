@@ -6,6 +6,7 @@ import pytest
 from dependency_injector.containers import DeclarativeContainer
 from pytest_benchmark.fixture import BenchmarkFixture
 
+from benchmarks.config import run_benchmark
 from pulya.routing import Router
 
 
@@ -33,7 +34,7 @@ class TestEndToEndBenchmarks:
             )
             return router
 
-        benchmark(create_router)
+        run_benchmark(benchmark, create_router)
 
     @pytest.mark.benchmark
     def test_route_matching_multiple(self, benchmark: BenchmarkFixture) -> None:
@@ -64,4 +65,4 @@ class TestEndToEndBenchmarks:
             router.match_route(HTTPMethod.GET, f"/api/v1/users/{user_id}")
             router.match_route(HTTPMethod.GET, f"/api/v1/posts/{post_id}")
 
-        benchmark(match_all_routes)
+        run_benchmark(benchmark, match_all_routes)

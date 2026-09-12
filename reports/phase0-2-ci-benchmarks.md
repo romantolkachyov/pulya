@@ -115,7 +115,7 @@ for benchmark_name, current_metrics in current_results.items():
     if benchmark_name not in baseline_results:
         continue
 
-    for metric in ['time', 'duration']:
+    for metric in ["time", "duration"]:
         if metric in current_metrics and metric in baseline_metrics:
             percent_change = ((current_value - baseline_value) / baseline_value) * 100
             if percent_change > 5.0:  # Threshold for failure

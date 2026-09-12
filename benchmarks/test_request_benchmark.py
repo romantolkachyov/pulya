@@ -5,6 +5,7 @@ from http import HTTPMethod
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
 
+from benchmarks.config import run_benchmark
 from pulya.headers import Headers
 from pulya.pulya import active_request
 
@@ -34,4 +35,4 @@ class TestRequestBenchmarks:
             token = active_request.set(request)
             active_request.reset(token)
 
-        benchmark(set_reset_context)
+        run_benchmark(benchmark, set_reset_context)

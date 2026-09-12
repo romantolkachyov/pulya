@@ -98,18 +98,20 @@ just build
 The `just benchmark` command automatically:
 
 1. Runs all benchmarks
-2. Generates a timestamped JSON report in `performance-reports/baselines/`
+2. Generates a timestamped Markdown report in `performance-reports/baselines/`
 3. Displays summary of results
 
 Example:
 ```bash
 just benchmark
-# Output: performance-reports/baselines/baseline-20260205.json
+# Output: performance-reports/baselines/baseline-YYYYMMDD-HHMM.md
 ```
 
-To compare against the baseline:
+To compare against the baseline (JSON results are gitignored, reports are paired by benchmark name):
 ```bash
 just benchmark-compare
+# or against a specific baseline:
+just benchmark-compare performance-reports/baselines/baseline-YYYYMMDD.json
 ```
 
 ### Linting and Formatting
