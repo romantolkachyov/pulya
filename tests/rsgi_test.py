@@ -46,15 +46,15 @@ class StubHTTPProtocol:
         return
 
     def response_file(
-        self, _status: int, _headers: list[tuple[str, str]], file: str
+        self, status: int, headers: list[tuple[str, str]], file: str
     ) -> None:
         """Response_file to send back a file response (from its path)."""
         raise NotImplementedError
 
     def response_file_range(
         self,
-        _status: int,
-        _headers: list[tuple[str, str]],
+        status: int,
+        headers: list[tuple[str, str]],
         file: str,
         start: int,
         end: int,
@@ -62,9 +62,7 @@ class StubHTTPProtocol:
         """Response_file_range to send back a file range response (from its path)."""
         raise NotImplementedError
 
-    def response_stream(
-        self, _status: int, _headers: list[tuple[str, str]]
-    ) -> Transport:
+    def response_stream(self, status: int, headers: list[tuple[str, str]]) -> Transport:
         """Response_stream to start a stream response."""
         raise NotImplementedError
 
