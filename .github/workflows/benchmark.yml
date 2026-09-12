@@ -1,9 +1,9 @@
 # This workflow runs benchmarks and detects performance regressions.
-# CI compares CI runs against CI runs: the baseline is a JSON report produced
-# by a master run on the same runners, passed through actions/cache.
-# Cache entries die after 7 days without access, so after a long project
-# inactivity run this workflow manually on master ("workflow_dispatch")
-# to rebuild the baseline.
+# Both versions are benchmarked on the SAME runner: for pull requests the
+# baseline (master) runs in a git worktree within the same job, right next
+# to the PR code. Comparing JSON reports produced by different runner
+# machines is unreliable — the shared ubuntu-latest pool mixes CPU
+# generations, which shifts all microbenchmarks by 10-30%.
 name: Benchmark
 
 on:
@@ -53,38 +53,33 @@ jobs:
       - name: Install the project
         run: uv sync --locked --all-extras --dev
 
-      - name: Run benchmarks
+      - name: Fetch master for the baseline
+        if: github.event_name == 'pull_request'
+        run: git fetch --depth=1 origin master:master
+
+      # The baseline runs first, on a cold machine, so thermal drift can
+      # only make the PR code look slower, never mask a real regression.
+      - name: Run benchmarks (master baseline, same runner)
+        if: github.event_name == 'pull_request'
+        run: |
+          git worktree add ../pulya-master master
+          cd ../pulya-master
+          uv sync --locked --all-extras --dev
+          uv run pytest benchmarks/ --benchmark-only ${BENCH_FLAGS} --benchmark-json=benchmark-master.json
+          cp benchmark-master.json "$GITHUB_WORKSPACE/"
+
+      - name: Run benchmarks (current)
         run: |
           uv run pytest benchmarks/ --benchmark-only ${BENCH_FLAGS} --benchmark-json=benchmark-current.json
 
-      - name: Restore baseline (pull requests only)
-        if: github.event_name == 'pull_request'
-        id: baseline-cache
-        uses: actions/cache/restore@v4
-        with:
-          # Unique key per master run; prefix match picks the freshest one.
-          # Note: with restore-keys matches cache-hit is always false, so the
-          # steps below check cache-matched-key instead.
-          key: pulya-bench-
-          restore-keys: pulya-bench-
-          path: benchmark-master.json
-
       - name: Compare against baseline
-        if: github.event_name == 'pull_request' && steps.baseline-cache.outputs.cache-matched-key != ''
+        if: github.event_name == 'pull_request'
         run: |
           uv run python tools/compare_benchmarks.py benchmark-master.json benchmark-current.json --fail-on-regression 15
 
-      - name: Report missing baseline
-        if: github.event_name == 'pull_request' && steps.baseline-cache.outputs.cache-matched-key == ''
-        run: |
-          echo "::warning::No benchmark baseline found in cache. Run the Benchmark workflow on master to create one; skipping comparison."
-
-      - name: Save baseline (master and manual runs only)
+      - name: Store benchmark report (master and manual runs only)
         if: github.event_name != 'pull_request'
-        run: cp benchmark-current.json benchmark-master.json
-      - name: Cache baseline
-        if: github.event_name != 'pull_request'
-        uses: actions/cache/save@v4
+        uses: actions/upload-artifact@v4
         with:
-          path: benchmark-master.json
-          key: pulya-bench-${{ github.run_id }}
+          name: benchmark-${{ github.run_id }}
+          path: benchmark-current.json
