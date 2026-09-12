@@ -60,11 +60,11 @@ class Pulya[T: DeclarativeContainer](Router, RSGIApplication, ASGIApplication):
         # dependency-injector is unstable in free-threading mode
         # so creating container sequentially
         with self._di_lock:
-            request_container = RequestContainer(ctx=active_request)
-            self.container = self.container_class(request=request_container)
+            self.container = self.container_class()
             self.container.check_dependencies()
             if fut := self.container.init_resources():
                 await fut  # pragma: no cover
+            request_container = RequestContainer(ctx=active_request)
             request_container.wiring_config = self.container.wiring_config
             self.container.wire(keep_cache=True)
             request_container.wire(keep_cache=True)

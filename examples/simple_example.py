@@ -27,9 +27,11 @@ class EchoBody(msgspec.Struct):
     items: list[EchoBodyItem]
 
 
-def get_user_from_request(request: Request) -> str:
+def get_user(path: str) -> str:
     # Just for example of how dependency may look like, no special meaning.
-    return f"<User {request.path}>"
+    # The dependency knows nothing about HTTP: the handler binds
+    # request data to plain arguments.
+    return f"<User {path}>"
 
 
 class Container(containers.DeclarativeContainer):
@@ -37,9 +39,7 @@ class Container(containers.DeclarativeContainer):
         modules=[__name__],
     )
 
-    request = providers.Container(RequestContainer)
-
-    user = providers.Factory(get_user_from_request, request=request.request)
+    user = providers.Factory(get_user)
 
 
 app = Pulya(Container)
@@ -53,11 +53,18 @@ async def index() -> dict[str, Any]:
 @app.get("/wiring/{name}")
 @inject
 async def two_containers_wiring(
-    user: Annotated[str, Provide[Container.user]],
+    request: Annotated[Request, Provide[RequestContainer.request]],
     name: str,
     headers: Annotated[Headers, Provide[RequestContainer.headers]],
 ) -> dict[str, Any]:
-    return {"test": "ok", "user": user, "name": name, "headers": list(headers)}
+    # The handler extracts request data and passes it as plain
+    # arguments to the application container dependencies.
+    return {
+        "test": "ok",
+        "user": Container.user(path=request.path),
+        "name": name,
+        "headers": list(headers),
+    }
 
 
 @app.get("/headers/")

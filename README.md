@@ -26,8 +26,8 @@ Simple application (`main.py`:
 
 ```python
 from typing import Any
-from pulya import Pulya, RequestContainer
-from dependency_injector import containers, providers
+from pulya import Pulya
+from dependency_injector import containers
 
 
 class Container(containers.DeclarativeContainer):
@@ -36,11 +36,6 @@ class Container(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(
         modules=[__name__],
     )
-
-    # Specially named dependency providing access to active request.
-    # Must have exact name `request`, actual container will be injected
-    # by the application on startup.
-    request = providers.Container(RequestContainer)
 
 
 app = Pulya(Container)
