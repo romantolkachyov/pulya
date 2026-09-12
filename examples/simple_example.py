@@ -4,12 +4,11 @@ from typing import Annotated, Any
 
 import msgspec.json
 from dependency_injector import containers, providers
-from dependency_injector.wiring import Provide, inject
+from dependency_injector.wiring import Provide
 
-from pulya import Body, Header, Pulya
+from pulya import BearerToken, Body, Depends, Header, Pulya
 from pulya.containers import RequestContainer
 from pulya.headers import Headers
-from pulya.request import Request
 from pulya.responses import Response
 
 
@@ -27,11 +26,11 @@ class EchoBody(msgspec.Struct):
     items: list[EchoBodyItem]
 
 
-def get_user(path: str) -> str:
-    # Just for example of how dependency may look like, no special meaning.
-    # The dependency knows nothing about HTTP: the handler binds
-    # request data to plain arguments.
-    return f"<User {path}>"
+class UserRepo:
+    """Example user repository."""
+
+    async def fetch_by_token(self, token: str) -> str:
+        return f"user-for-{token}"
 
 
 class Container(containers.DeclarativeContainer):
@@ -39,7 +38,18 @@ class Container(containers.DeclarativeContainer):
         modules=[__name__],
     )
 
-    user = providers.Factory(get_user)
+    user_repo = providers.Singleton(UserRepo)
+
+
+async def get_user(
+    token: Annotated[str | None, BearerToken()],
+    repo: Annotated[UserRepo, Provide[Container.user_repo]],
+) -> str:
+    # Just for example of how dependency may look like, no special meaning.
+    # Depends() wraps it with the wiring resolver, no @inject is needed.
+    if token is None:
+        return "<Anonymous>"
+    return await repo.fetch_by_token(token)
 
 
 app = Pulya(Container)
@@ -51,24 +61,15 @@ async def index() -> dict[str, Any]:
 
 
 @app.get("/wiring/{name}")
-@inject
 async def two_containers_wiring(
-    request: Annotated[Request, Provide[RequestContainer.request]],
     name: str,
     headers: Annotated[Headers, Provide[RequestContainer.headers]],
+    user: str = Depends(get_user),
 ) -> dict[str, Any]:
-    # The handler extracts request data and passes it as plain
-    # arguments to the application container dependencies.
-    return {
-        "test": "ok",
-        "user": Container.user(path=request.path),
-        "name": name,
-        "headers": list(headers),
-    }
+    return {"test": "ok", "user": user, "name": name, "headers": list(headers)}
 
 
 @app.get("/headers/")
-@inject
 async def print_headers(
     x_example: Annotated[str, Header("X-Example")],
 ) -> dict[str, str]:
@@ -91,7 +92,6 @@ async def str_response() -> str:
 
 
 @app.post("/echo")
-@inject
 async def echo(
     body: Annotated[EchoBody, Body(EchoBody)],
 ) -> EchoBody:

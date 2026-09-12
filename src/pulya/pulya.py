@@ -1,6 +1,7 @@
 import threading
 from _contextvars import ContextVar
 from http import HTTPStatus
+from inspect import isawaitable
 from typing import Any
 
 import msgspec
@@ -52,6 +53,12 @@ class Pulya[T: DeclarativeContainer](Router, RSGIApplication, ASGIApplication):
         handler_params = msgspec.structs.asdict(validated_path_params)
         token = active_request.set(request)
         try:
+            if route.depends:
+                for name, dep in route.depends.items():
+                    value = dep.fn()
+                    if isawaitable(value):
+                        value = await value
+                    handler_params[name] = value
             return await route.handler(**handler_params)
         finally:
             active_request.reset(token)
